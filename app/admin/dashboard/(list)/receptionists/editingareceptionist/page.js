@@ -53,7 +53,7 @@ export default async function EditReceptionistPage({ searchParams }) {
               use the edit action beside the receptionist you want to update.
             </p>
             <Link
-              href="/dashboard/receptionists"
+              href="/admin/dashboard/receptionists"
               className="mt-6 inline-flex rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
             >
               Back to Receptionist Directory

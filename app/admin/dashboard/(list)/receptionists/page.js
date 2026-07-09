@@ -1,24 +1,25 @@
 import Button from "@/components/Button";
-import Link from "next/link";
 import Pagination from "@/components/Pagination";
-import Image from "next/image";
 import TypeaheadSearch from "@/components/TypeaheadSearch";
+
+import Link from "next/link";
+import Image from "next/image";
 
 import prisma from "@/lib/prisma";
 
 const ITEMS_PER_PAGE = 5;
 
-export default async function DoctorListPage({ searchParams }) {
+export default async function ReceptionistListPage({ searchParams }) {
   const params = await searchParams;
   const requestedPage = Number(params?.page);
   const currentPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const totalDoctors = await prisma.doctor.count();
-  const totalPages = Math.max(1, Math.ceil(totalDoctors / ITEMS_PER_PAGE));
+  const totalReceptionists = await prisma.receptionist.count();
+  const totalPages = Math.max(1, Math.ceil(totalReceptionists / ITEMS_PER_PAGE));
   // Clamp invalid or oversized page numbers so Prisma always queries a real page.
   const safeCurrentPage = Math.min(currentPage, totalPages);
 
   // Fetch latest doctors first
-  const doctors = await prisma.doctor.findMany({
+  const receptionists = await prisma.receptionist.findMany({
     orderBy: {
       createdAt: "desc", // newest first
     },
@@ -27,20 +28,20 @@ export default async function DoctorListPage({ searchParams }) {
   });
 
   return (
-    <div className="relative flex flex-1 flex-col overflow-x-hidden bg-background text-gray-900 dark:text-gray-100 font-sans">
-
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-6 lg:px-10 py-8">
+      <section className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
         {/* Header Section */}
         <div className="mb-8 flex justify-between items-end">
           <div>
-            <h1 className="text-gray-900 dark:text-white text-3xl font-black tracking-tight mb-2">Doctor Directory</h1>
+            <h1 className="text-gray-900 dark:text-white text-3xl font-black tracking-tight mb-2">Receptionist Directory</h1>
             <p className="text-gray-500 dark:text-gray-400 max-w-2xl">
-              Manage and monitor doctor records across all departments. Search by name, ID, or contact details to see the doctor&apos;s profile.
+              Manage and monitor receptionist records. Search by name, ID, or contact details to access full clinical history.
             </p>
           </div>
-          {/* Add a New Doctor */}
-          <Link href="/dashboard/doctors/addadoctor">
-            <Button text="Add Doctor" iconType="add" />
+          {/* Add a New Receptionist */}
+          <Link href="/admin/dashboard/receptionists/addareceptionist">
+            <Button
+              text="Add Receptionist"
+              iconType="add" />
           </Link>
         </div>
 
@@ -48,8 +49,8 @@ export default async function DoctorListPage({ searchParams }) {
         <div className="bg-foreground p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[300px]">
             <TypeaheadSearch
-              entity="doctors"
-              placeholder="Search by name, doctor ID, phone, or email..."
+              entity="receptionists"
+              placeholder="Search by name, receptionist ID, phone, or email..."
             />
           </div>
         </div>
@@ -61,93 +62,83 @@ export default async function DoctorListPage({ searchParams }) {
               <thead>
                 <tr className="bg-foregd border-b border-gray-200 dark:border-gray-700">
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    doctor_id
+                    Receptionist ID
                   </th>
                   <th className="w-[30%] px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Name
                   </th>
-                  <th className="w-[20%] px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    qualification
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Gender
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    specialization
+                    Last Visit
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    room
+                    Shift
                   </th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                     Actions
                   </th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {doctors.length === 0 && (
+                {receptionists.length === 0 && (
                   <tr>
                     <td colSpan="6" className="text-center py-10 text-gray-500">
-                      No doctors found
+                      No receptionists found
                     </td>
                   </tr>
                 )}
 
-                {doctors.map((doctor) => (
-                  <tr key={doctor.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                {receptionists.map((receptionist) => (
+                  <tr key={receptionist.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="px-6 py-4">
-                      <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
-                        {doctor.doctor_id}
-                      </span>
+                      <span className="text-sm font-mono text-gray-500 dark:text-gray-400">{receptionist.receptionists_id}</span>
                     </td>
-
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-blue-100 flex items-center justify-center">
-                          {doctor?.profileImage ? (
+                          {receptionist?.profileImage ? (
                             <Image
-                              src={doctor.profileImage}
-                              alt={doctor?.name || "Doctor profile"}
+                              src={receptionist.profileImage}
+                              alt={receptionist?.name || "Receptionist profile"}
                               fill
                               sizes="40px"
                               className="object-cover"
                             />
                           ) : (
                             <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                              {doctor?.name?.charAt(0)?.toUpperCase() || "D"}
+                              {receptionist?.name?.charAt(0)?.toUpperCase() || "D"}
                             </div>
                           )}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-gray-900 dark:text-white">
-                            {doctor.name}
-                          </div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-white">{receptionist.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">01811111111</div>
                         </div>
                       </div>
                     </td>
-
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-700 dark:text-gray-300">
-                        {doctor.qualification}
-                      </div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">{receptionist.gender}</div>
                     </td>
-
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-700 dark:text-gray-300">
-                        {doctor.specialization}
-                      </div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300">{new Date(receptionist.createdAt).toLocaleDateString()}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">{new Date(receptionist.createdAt).toLocaleTimeString()}</div>
                     </td>
-
                     <td className="px-6 py-4">
-                      {doctor.room ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                          {doctor.room}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-400">N/A</span>
-                      )}
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+            ${receptionist.shift === "Morning"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          }`}
+                      >
+                        {receptionist.shift}
+                      </span>
                     </td>
-
                     <td className="px-6 py-4 text-right">
                       <div className="flex gap-2 justify-end">
-                        <Link href={`/dashboard/doctors/editingadoctor?id=${doctor.id}`}>
+                        <Link href={`/admin/dashboard/receptionists/editingareceptionist?id=${receptionist.id}`}>
                           <button className="cursor-pointer p-2 text-gray-400 hover:text-blue-600 transition-colors bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <svg
                               className="w-5 h-5"
@@ -170,7 +161,7 @@ export default async function DoctorListPage({ searchParams }) {
                             </svg>
                           </button>
                         </Link>
-                        <Link href={`/doctor/${doctor.id}/profile`}>
+                        <Link href={`/receptionist/${receptionist.id}/dashboard`}>
                           <button className="cursor-pointer p-2 text-gray-400 hover:text-blue-600 transition-colors bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -188,13 +179,21 @@ export default async function DoctorListPage({ searchParams }) {
 
           {/* Pagination */}
           <Pagination
-            name="doctors"
+            name="receptionists"
             currentPage={safeCurrentPage}
-            totalItems={totalDoctors}
+            totalItems={totalReceptionists}
             itemsPerPage={ITEMS_PER_PAGE}
           />
         </div>
-      </main>
-    </div>
-  );
+      </section>
+  )
 }
+
+// export async function generateStaticParams() {
+//   const receptionistId = ["32HDJ3G5", "32HDJ3G4F", "32HDJ3G52"];
+//   return receptionistId.map((receptionistId) => ({
+//     receptionistId,
+//   }));
+// }
+
+// export const revalidate = 3600; // Revalidate every hour (ISR)

@@ -9,10 +9,10 @@ export type RoleHomePayload = {
 type RoleHomeHandler = (payload: RoleHomePayload) => string;
 
 const ROLE_HOME: Partial<Record<Role, RoleHomeHandler>> = {
-    SUPER_ADMIN: () => "/dashboard",
-    ADMIN: () => "/dashboard",
-    DOCTOR: (p) => `/doctor/${p.id ?? p.userid}/dashboard`,
-    RECEPTIONIST: (p) => `/receptionist/${p.id ?? p.userid}/dashboard`,
+    SUPER_ADMIN: () => "/admin/dashboard",
+    ADMIN: () => "/admin/dashboard",
+    DOCTOR: () => "/dashboard",
+    RECEPTIONIST: () => "/dashboard",
 };
 
 export function getRoleHome(payload: RoleHomePayload): string {

@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 
+import AppShell from "@/components/AppShell";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -35,12 +37,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>
+      <body className="min-h-dvh bg-background text-gray-900 antialiased dark:text-gray-100">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div className="flex h-screen overflow-hidden">
-
-            {children}
-          </div>
+          <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

@@ -17,13 +17,22 @@ export default function SettingPage() {
     const isDark = mounted && resolvedTheme === "dark";
 
     return (
-        <div className="max-w-4xl bg-background mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="bg-foreground rounded-2xl p-8 mb-6 shadow-xl border border-gray-200 dark:border-slate-700">
-                <h2 className="text-2xl font-bold text-primary mb-6">
+        <section className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-950 dark:text-white sm:text-3xl">
+                    Settings
+                </h1>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    Manage workspace preferences and display options.
+                </p>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-foreground p-6 shadow-sm dark:border-slate-800">
+                <h2 className="mb-6 text-base font-semibold text-gray-950 dark:text-white">
                     Appearance
                 </h2>
 
-                <div className="flex items-center justify-between p-5 bg-foregd dark:bg-foregd rounded-xl border border-gray-300 dark:border-slate-700 shadow-xl">
+                <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-foregd p-5 dark:border-slate-800">
                     <div>
                         <p className="font-semibold text-gray-900 dark:text-white mb-1">
                             Dark Mode
@@ -51,6 +60,6 @@ export default function SettingPage() {
                     </button>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }

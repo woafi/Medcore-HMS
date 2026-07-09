@@ -1,9 +1,10 @@
 "use server";
 
-import { z } from 'zod'
-import { redirect } from 'next/navigation';
-import { generateAccessToken, setAuthCookies, verifyPassword } from '@/lib/auth';
-import { getRoleHome } from "@/lib/getRoleHome" 
+import { redirect } from "next/navigation";
+import { z } from "zod";
+
+import { generateAccessToken, setAuthCookies, verifyPassword } from "@/lib/auth";
+import { getRoleHome } from "@/lib/getRoleHome";
 import prisma from "@/lib/prisma";
 
 
@@ -25,28 +26,40 @@ const loginSchema = z.object({
         .min(5, "Password must be at least 5 characters"),
 });
 
+function createLoginState(
+    message: string,
+    raw: Record<string, string>,
+    fieldErrors: LoginState["fieldErrors"] = { phone: "", password: "" }
+): LoginState {
+    return {
+        message,
+        fieldErrors,
+        values: {
+            phone: raw.phone || "",
+            password: raw.password || "",
+        },
+    };
+}
 
 export async function loginAction(
-    prevState: LoginState,
+    _prevState: LoginState,
     formData: FormData
 ): Promise<LoginState> {
     const raw = Object.fromEntries(formData) as Record<string, string>;
     const result = loginSchema.safeParse(raw);
+    let redirectUrl: string | null = null;
 
     if (!result.success) {
         const fieldErrors = result.error.flatten().fieldErrors;
 
-        return {
-            message: "Invalid Credential",
-            fieldErrors: {
+        return createLoginState(
+            "Invalid Credential",
+            raw,
+            {
                 phone: fieldErrors.phone?.[0] || "",
                 password: fieldErrors.password?.[0] || "",
-            },
-            values: {
-                phone: raw.phone || "",
-                password: raw.password || "",
-            },
-        }
+            }
+        );
     }
 
     const { phone, password } = result.data;
@@ -58,27 +71,13 @@ export async function loginAction(
         });
 
         if (!user) {
-            return {
-                message: "User not found!",
-                fieldErrors: { phone: "", password: "" },
-                values: {
-                    phone: raw.phone || "",
-                    password: raw.password || "",
-                },
-            };
+            return createLoginState("User not found!", raw);
         }
 
         // Verify password
         const isValid = await verifyPassword(password, user.password);
         if (!isValid) {
-            return {
-                message: "Password is wrong!",
-                fieldErrors: { phone: "", password: "" },
-                values: {
-                    phone: raw.phone || "",
-                    password: raw.password || "",
-                },
-            };
+            return createLoginState("Password is wrong!", raw);
         }
 
         // Generate tokens
@@ -91,25 +90,16 @@ export async function loginAction(
             data: { lastLoginAt: new Date() },
         });
 
-        const redirectUrl = getRoleHome(user);
-
-        redirect(redirectUrl);
+        redirectUrl = getRoleHome(user);
 
     } catch (error) {
-        // If it's a redirect error, let it propagate
-        if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-            throw error;
-        }
-
         console.log(error);
-        return {
-            message: "Server Error",
-            fieldErrors: { phone: "", password: "" },
-            values: {
-                phone: raw.phone || "",
-                password: raw.password || "",
-            },
-        };
+        return createLoginState("Server Error", raw);
     }
 
+    if (!redirectUrl) {
+        return createLoginState("Server Error", raw);
+    }
+
+    redirect(redirectUrl);
 }

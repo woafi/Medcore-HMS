@@ -37,12 +37,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 font-sans text-gray-800 dark:text-gray-200">
+    <div className="flex min-h-dvh w-full bg-gray-50 font-sans text-gray-800 dark:bg-gray-900 dark:text-gray-200">
       {/* Left Side: Hero / Brand Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-cover bg-center mix-blend-plus-darker"  style={{ backgroundImage: "url('/loginPageImage.png')", }}>
-        <div className="absolute inset-0 z-0">
-          <div className="w-full h-full backdrop-blur-[5px]"></div>
-        </div>
+      <div className="relative hidden overflow-hidden bg-cover bg-center lg:flex lg:w-1/2" style={{ backgroundImage: "url('/loginPageImage.png')" }}>
+        <div className="absolute inset-0 z-0 bg-slate-950/35 backdrop-blur-[2px]" />
         <div className="relative z-10 w-full flex flex-col justify-center px-16 text-gray-900 dark:text-white">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white">
@@ -69,8 +67,6 @@ export default function Login() {
             <span className="text-sm font-medium">Trusted by leading medical professionals</span>
           </div>
         </div>
-        {/* Decorative circle */}
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"></div>
       </div>
 
       {/* Right Side: Authentication Forms */}
