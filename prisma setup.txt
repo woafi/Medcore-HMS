@@ -1,0 +1,12 @@
+npx prisma init
+npx prisma migrate dev --name init
+"prisma": {
+  "seed": "node prisma/seed.ts"
+}
+npx prisma db seed
+npx prisma studio
+
+npx prisma migrate reset
+npx prisma db push --force-reset
+
+

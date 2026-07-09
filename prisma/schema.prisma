@@ -1,0 +1,225 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum Role {
+    SUPER_ADMIN
+    ADMIN
+    DOCTOR
+    RECEPTIONIST
+    ACCOUNTANT
+    PATIENT
+}
+
+enum Gender {
+    MALE
+    FEMALE
+    OTHER
+}
+
+enum BloodGroup {
+    A_Positive
+    A_Negative
+    B_Positive
+    B_Negative
+    AB_Positive
+    AB_Negative
+    O_Positive
+    O_Negative
+}
+
+model User {
+    id          String    @id @default(cuid())
+    email       String    @unique
+    password    String
+    role        Role
+    phone       String    @unique
+    lastLoginAt DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    // Relations
+    doctor       Doctor?
+    receptionist Receptionist?
+
+    @@index([role])
+}
+
+// ==================== DOCTOR ====================
+model Doctor {
+    id              String  @id @default(uuid())
+    doctor_id       String  @unique
+    name            String
+    specialization  String
+    qualification   String
+    room            Int?    @unique
+    bio             String
+    profileImage    String?
+    consultationFee Decimal @default(0)
+    isActive        Boolean @default(true)
+    gender          Gender
+
+    // 1-1 link to User
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    availabilities Availability[]
+    appointments   Appointment[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([specialization])
+    @@index([isActive])
+    @@index([name])
+}
+
+enum Day {
+    Monday
+    Tuesday
+    Wednesday
+    Thursday
+    Friday
+    Saturday
+    Sunday
+}
+
+enum Status {
+    Available
+    Emergency_Only
+    Off_duty
+}
+
+model Availability {
+    id     String @id @default(uuid())
+    day    Day
+    status Status
+
+    doctorId String
+    doctor   Doctor @relation(fields: [doctorId], references: [id])
+
+    available_slots Slot[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Slot {
+    id String @id @default(uuid())
+
+    startTime DateTime
+    endTime   DateTime
+
+    is_booked Boolean @default(false)
+
+    availabilityId String
+    availability   Availability @relation(fields: [availabilityId], references: [id])
+
+    createdAt    DateTime      @default(now())
+    appointments Appointment[]
+}
+
+model Receptionist {
+    id               String  @id @default(uuid())
+    name             String
+    receptionists_id String  @unique
+    profileImage     String?
+    gender           Gender
+
+    shift    Shift
+    isActive Boolean @default(true)
+
+    createdAt DateTime @default(now())
+
+    // 1-1 link to User
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([name])
+}
+
+enum Shift {
+    Morning
+    Evening
+    Night
+}
+
+model Patient {
+    id        String @id @default(cuid())
+    patientId String @unique
+
+    fullname       String
+    dateOfBirth    DateTime?
+    age            Int?
+    gender         Gender
+    phone          String?
+    email          String?
+    address        String?
+    bloodGroup     BloodGroup
+    allergies      String?
+    emergencyName  String?
+    emergencyPhone String?
+    relationship   String?
+
+    profileImage String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    appointments Appointment[]
+
+    @@index([phone])
+    @@index([fullname])
+}
+
+model Appointment {
+    id String @id @default(uuid())
+
+    date      DateTime // Selected date (important)
+    startTime DateTime
+    endTime   DateTime
+
+    status AppointmentStatus @default(SCHEDULED)
+
+    patientId String
+    patient   Patient @relation(fields: [patientId], references: [id])
+
+    doctorId String
+    doctor   Doctor @relation(fields: [doctorId], references: [id])
+
+    slotId String? // optional but recommended
+    slot   Slot?   @relation(fields: [slotId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model DashboardLog {
+    id String @id @default(cuid())
+    type String
+    category LogCategory
+    message String
+    entityId String?
+    appointmentId String?
+    metadata Json?
+    createdAt DateTime @default(now())
+
+    @@index([category, createdAt])
+}
+
+enum LogCategory {
+    ENTITY
+    APPOINTMENT
+}
+
+enum AppointmentStatus {
+    SCHEDULED
+    WAITING
+    IN_PROGRESS
+    CHECKED_IN
+}
