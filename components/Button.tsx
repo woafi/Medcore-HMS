@@ -8,6 +8,15 @@ const icons = {
     )
 };
 
+type ButtonProps = {
+  text: string;
+  iconType?: keyof typeof icons | null;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  type?: "button" | "submit" | "reset";
+  disabled?: boolean;
+  className?: string;
+};
+
 const Button = ({
     text,
     iconType = null,
@@ -15,7 +24,7 @@ const Button = ({
     type = "button",
     disabled = false,
     className = ""
-}) => {
+}: ButtonProps) => {
     return (
         <button
             type={type}

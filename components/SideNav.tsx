@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import LogoutButton from "./LogoutButton";
 import { usePathname } from "next/navigation";
+import LogoutButton from "./LogoutButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getNavLinksForRole, isNavLinkActive } from "@/lib/navLinks";
 
@@ -19,11 +19,6 @@ const SideNav = () => {
   const pathname = usePathname();
   const { user, loading } = useCurrentUser();
   const navLinks = getNavLinksForRole(user?.role);
-  const hideNavigation = pathname === "/login";
-  
-  if (hideNavigation) {
-    return null;
-  }
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-gray-200 bg-foreground shadow-sm dark:border-gray-800 lg:flex lg:flex-col lg:justify-between">

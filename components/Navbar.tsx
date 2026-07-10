@@ -1,17 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import UserInfo from "./UserInfo";
 
 export default function Navbar() {
-    const pathname = usePathname();
-
-    if (pathname === "/login") {
-        return null;
-    }
-
     // Get current date in a readable format
     const getCurrentDate = () => {
         const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' } as const;

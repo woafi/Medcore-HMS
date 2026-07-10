@@ -17,8 +17,8 @@ export type NavLink = {
 
 const ADMIN_LINKS: NavLink[] = [
   { name: "Dashboard", href: "/admin/dashboard", icon: "dashboard", exact: true },
-  { name: "Doctors", href: "/admin/dashboard/doctors", icon: "doctors" },
-  { name: "Receptionists", href: "/admin/dashboard/receptionists", icon: "receptionists" },
+  { name: "Doctors", href: "/admin/doctors", icon: "doctors" },
+  { name: "Receptionists", href: "/admin/receptionists", icon: "receptionists" },
 ];
 
 const DOCTOR_LINKS: NavLink[] = [

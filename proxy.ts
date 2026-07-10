@@ -21,10 +21,10 @@ const JWT_SECRET = new TextEncoder().encode(jwtSecret);
 
 const ROLE_ROUTES: Record<string, readonly UserRole[]> = {
     "/admin": ["SUPER_ADMIN", "ADMIN"],
-    "/doctor": ["SUPER_ADMIN", "ADMIN", "DOCTOR"],
-    "/receptionist": ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"],
-    "/api/receptiondashboard": ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"],
-    "/api/doctordashboard": ["SUPER_ADMIN", "ADMIN", "DOCTOR"],
+    "/doctor": ["DOCTOR"],
+    "/receptionist": ["RECEPTIONIST"],
+    "/api/receptiondashboard": ["RECEPTIONIST"],
+    "/api/doctordashboard": ["DOCTOR"],
     "/api/admindashboard": ["SUPER_ADMIN", "ADMIN"],
     "/api/doctors": ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"],
 };
