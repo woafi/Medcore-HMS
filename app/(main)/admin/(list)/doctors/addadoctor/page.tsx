@@ -34,7 +34,19 @@ const specializationOptions = [
   "Gynecologist",
 ];
 
-function SectionCard({ icon: Icon, iconClassName, title, children, muted = false }) {
+function SectionCard({
+  icon: Icon,
+  iconClassName,
+  title,
+  children,
+  muted = false,
+}: {
+  icon: React.ElementType;
+  iconClassName?: string;
+  title: string;
+  children: React.ReactNode;
+  muted?: boolean;
+}) {
   return (
     <section
       className={`rounded-2xl border p-6 shadow-sm lg:p-8 ${muted
@@ -57,7 +69,15 @@ function SectionCard({ icon: Icon, iconClassName, title, children, muted = false
   );
 }
 
-function FormField({ label, error, children }) {
+function FormField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
@@ -113,7 +133,7 @@ export default function AddDoctorPage() {
   )
   const [isActive, setIsActive] = useState(state.values.isActive);
 
-  const handleTitleKeyDown = (e) => {
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
     if (
       (e.ctrlKey || e.metaKey) &&
       (e.key === "Enter" || e.key === "NumpadEnter")

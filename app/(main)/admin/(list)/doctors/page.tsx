@@ -117,7 +117,7 @@ export default function DoctorListPage() {
           </p>
         </div>
         {/* Add a New Doctor */}
-        <Link href="/admin/dashboard/doctors/addadoctor">
+        <Link href="/admin/doctors/addadoctor">
           <Button text="Add Doctor" iconType="add" />
         </Link>
       </div>

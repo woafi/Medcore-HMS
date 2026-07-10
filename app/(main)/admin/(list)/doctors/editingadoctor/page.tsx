@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import EditDoctorForm from "@/components/EditDoctorForm";
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 const emptyFieldErrors = {
   name: "",
@@ -18,12 +19,23 @@ const emptyFieldErrors = {
   isActive: "",
 };
 
-function toTitleCaseGender(gender) {
+function toTitleCaseGender(gender: string) {
   if (!gender) return "";
   return gender.charAt(0) + gender.slice(1).toLowerCase();
 }
 
-function buildInitialState(doctor) {
+type DoctorWithUser = Prisma.DoctorGetPayload<{
+  include: {
+    user: {
+      select: {
+        email: true;
+        phone: true;
+      };
+    };
+  };
+}>;
+
+function buildInitialState(doctor: DoctorWithUser) {
   return {
     message: "",
     fieldErrors: emptyFieldErrors,
@@ -44,7 +56,11 @@ function buildInitialState(doctor) {
   };
 }
 
-export default async function EditDoctorPage({ searchParams }) {
+type PageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function EditDoctorPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const doctorId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
@@ -61,7 +77,7 @@ export default async function EditDoctorPage({ searchParams }) {
               edit action beside the doctor you want to update.
             </p>
             <Link
-              href="/admin/dashboard/doctors"
+              href="/dashboard/doctors"
               className="mt-6 inline-flex rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
             >
               Back to Doctor Directory
