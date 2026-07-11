@@ -6,7 +6,7 @@ import Pagination from "@/components/Pagination";
 import Image from "next/image";
 import TypeaheadSearch from "@/components/TypeaheadSearch";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 type Doctor = {
   id: string;
@@ -28,6 +28,23 @@ type ApiResponse = {
 };
 
 export default function DoctorListPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center py-20 text-gray-500">
+            <span className="inline-block mr-3 h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            Loading doctors...
+          </div>
+        </section>
+      }
+    >
+      <DoctorListContent />
+    </Suspense>
+  );
+}
+
+function DoctorListContent() {
   const searchParams = useSearchParams();
   const requestedPage = Number(searchParams.get("page"));
   const currentPage =
@@ -261,7 +278,7 @@ export default function DoctorListPage() {
                             </svg>
                           </button>
                         </Link>
-                        <Link href={`/doctor/${doctor.id}/profile`}>
+                        <Link href={`/doctorprofile/${doctor.id}`}>
                           <button className="cursor-pointer p-2 text-gray-400 hover:text-blue-600 transition-colors bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <svg
                               className="w-5 h-5"

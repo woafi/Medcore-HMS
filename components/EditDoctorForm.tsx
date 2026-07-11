@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
+import type { ElementType, ReactNode, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import DoctorImageUpload from "@/components/DoctorImageUpload";
 import { doctorUpdateAction } from "@/app/actions/doctorFormsubmissionAction";
@@ -28,7 +29,13 @@ const specializationOptions = [
   "Oncology",
 ];
 
-function SectionCard({ icon: Icon, iconClassName, title, children, muted = false }) {
+function SectionCard({ icon: Icon, iconClassName, title, children, muted = false }: {
+  icon: ElementType;
+  iconClassName?: string;
+  title: string;
+  children: ReactNode;
+  muted?: boolean;
+}) {
   return (
     <section
       className={`rounded-2xl border p-6 shadow-sm lg:p-8 ${
@@ -53,7 +60,11 @@ function SectionCard({ icon: Icon, iconClassName, title, children, muted = false
   );
 }
 
-function FormField({ label, error, children }) {
+function FormField({ label, error, children }: {
+  label: string;
+  error?: string;
+  children: ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
@@ -68,7 +79,46 @@ function FormField({ label, error, children }) {
 const inputClassName =
   "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-blue-400 dark:focus:bg-gray-950 dark:focus:ring-blue-900/40";
 
-export default function EditDoctorForm({ doctorId, initialState }) {
+interface FieldErrors {
+  name: string;
+  email: string;
+  phone: string;
+  doctor_id: string;
+  room: string;
+  gender: string;
+  specialization: string;
+  qualification: string;
+  bio: string;
+  profileImage: string;
+  consultationFee: string;
+  isActive: string;
+}
+
+interface FormValues {
+  name: string;
+  email: string;
+  phone: string;
+  doctor_id: string;
+  room: string;
+  gender: string;
+  specialization: string;
+  qualification: string;
+  bio: string;
+  profileImage: string;
+  consultationFee: string;
+  isActive: boolean;
+}
+
+interface DoctorFormState {
+  message: string;
+  fieldErrors: FieldErrors;
+  values: FormValues;
+}
+
+export default function EditDoctorForm({ doctorId, initialState }: {
+  doctorId: string;
+  initialState: DoctorFormState;
+}) {
   const [state, formAction, pending] = useActionState(
     doctorUpdateAction,
     initialState
@@ -76,7 +126,7 @@ export default function EditDoctorForm({ doctorId, initialState }) {
   const [isActive, setIsActive] = useState(initialState.values.isActive);
   const router = useRouter();
 
-  const handleTitleKeyDown = (e) => {
+  const handleTitleKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
     if (
       (e.ctrlKey || e.metaKey) &&
       (e.key === "Enter" || e.key === "NumpadEnter")

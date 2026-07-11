@@ -20,13 +20,10 @@ if (!jwtSecret) {
 const JWT_SECRET = new TextEncoder().encode(jwtSecret);
 
 const ROLE_ROUTES: Record<string, readonly UserRole[]> = {
+    "/doctorprofile": ["RECEPTIONIST", "SUPER_ADMIN", "ADMIN", "DOCTOR"],
     "/admin": ["SUPER_ADMIN", "ADMIN"],
     "/doctor": ["DOCTOR"],
     "/receptionist": ["RECEPTIONIST"],
-    "/api/receptiondashboard": ["RECEPTIONIST"],
-    "/api/doctordashboard": ["DOCTOR"],
-    "/api/admindashboard": ["SUPER_ADMIN", "ADMIN"],
-    "/api/doctors": ["SUPER_ADMIN", "ADMIN", "RECEPTIONIST"],
 };
 
 function createUrl(path: string, req: NextRequest): URL {
@@ -108,7 +105,7 @@ export async function proxy(req: NextRequest) {
 
         if (pathname.startsWith("/doctor")) {
             const doctorId = pathParts[2];
-
+            
             if (payload.role === "DOCTOR" && payload.userid !== doctorId) {
                 return NextResponse.redirect(
                     createUrl(`/doctor/${payload.userid}/dashboard`, req)

@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       });
 
       results = doctors.map((doctor) => ({
-        href: `/admin/dashboard/doctors/editingadoctor?id=${doctor.id}`,
+        href: `/doctorprofile/${doctor.id}`,
         id: doctor.id,
         image: doctor.profileImage,
         title: doctor.name,

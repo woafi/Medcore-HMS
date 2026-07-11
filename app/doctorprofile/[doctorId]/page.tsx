@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
-// export const dynamic = "force-dynamic";
+export const revalidate = 3600; // ISR: revalidate every hour
 
 const dayOrder = [
   "Monday",
@@ -12,18 +13,21 @@ const dayOrder = [
   "Friday",
   "Saturday",
   "Sunday",
-];
+] as const;
 
-function formatGender(gender) {
-  const labels = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
+type Day = (typeof dayOrder)[number];
+type Gender = "MALE" | "FEMALE" | "OTHER";
+
+function formatGender(gender: Gender | string): string {
+  const labels: Record<string, string> = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
   return labels[gender] ?? gender;
 }
 
-function formatStatus(status) {
+function formatStatus(status: string | null | undefined): string {
   return String(status ?? "").replace(/_/g, " ");
 }
 
-function formatDateTime(value) {
+function formatDateTime(value: Date | string | null | undefined): string {
   if (!value) return "Not recorded";
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -31,14 +35,14 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-function formatTime(value) {
+function formatTime(value: Date | string): string {
   return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
 }
 
-function formatFee(value) {
+function formatFee(value: number | string | Prisma.Decimal | null | undefined): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -46,7 +50,7 @@ function formatFee(value) {
   }).format(Number(value ?? 0));
 }
 
-function initialsFromName(name) {
+function initialsFromName(name: string | null | undefined): string {
   if (!name?.trim()) return "?";
   return name
     .trim()
@@ -57,7 +61,58 @@ function initialsFromName(name) {
     .toUpperCase();
 }
 
-function FieldCard({ label, children, className = "" }) {
+// ---- Types ----
+
+interface FieldCardProps {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+interface SectionTitleProps {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}
+
+interface ActiveBadgeProps {
+  active: boolean;
+}
+
+type DoctorWithRelations = Prisma.DoctorGetPayload<{
+  include: {
+    user: {
+      select: { email: true; phone: true; lastLoginAt: true; createdAt: true };
+    };
+    availabilities: {
+      include: {
+        available_slots: {
+          orderBy: { startTime: "asc" };
+        };
+      };
+    };
+  };
+}>;
+
+interface SlotWithId {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+}
+
+interface AvailabilityWithSlots {
+  id: string;
+  day: string;
+  status: string;
+  available_slots: SlotWithId[];
+}
+
+interface ScheduleCardProps {
+  availabilities: AvailabilityWithSlots[];
+}
+
+// ---- Components ----
+
+function FieldCard({ label, children, className = "" }: FieldCardProps) {
   return (
     <div
       className={`rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 ${className}`}
@@ -72,7 +127,7 @@ function FieldCard({ label, children, className = "" }) {
   );
 }
 
-function SectionTitle({ icon, children }) {
+function SectionTitle({ icon, children }: SectionTitleProps) {
   return (
     <h2 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
       <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
@@ -83,7 +138,7 @@ function SectionTitle({ icon, children }) {
   );
 }
 
-function ActiveBadge({ active }) {
+function ActiveBadge({ active }: ActiveBadgeProps) {
   return (
     <span
       className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
@@ -97,9 +152,9 @@ function ActiveBadge({ active }) {
   );
 }
 
-function ScheduleCard({ availabilities }) {
+function ScheduleCard({ availabilities }: ScheduleCardProps) {
   const sortedAvailabilities = [...availabilities].sort(
-    (a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day)
+    (a, b) => dayOrder.indexOf(a.day as Day) - dayOrder.indexOf(b.day as Day)
   );
 
   return (
@@ -162,10 +217,28 @@ function ScheduleCard({ availabilities }) {
   );
 }
 
-export default async function DoctorProfilePage({ params }) {
+// ---- SSG: generate all doctor IDs at build time ----
+
+export async function generateStaticParams(): Promise<{ doctorId: string }[]> {
+  const doctors = await prisma.doctor.findMany({
+    select: { id: true },
+  });
+
+  return doctors.map((doctor) => ({
+    doctorId: doctor.id,
+  }));
+}
+
+// ---- Page ----
+
+export default async function DoctorProfilePage({
+  params,
+}: {
+  params: Promise<{ doctorId: string }>;
+}) {
   const { doctorId } = await params;
 
-  const doctor = await prisma.doctor.findFirst({
+  const doctor: DoctorWithRelations | null = await prisma.doctor.findFirst({
     where: {
       OR: [{ id: doctorId }, { userId: doctorId }],
     },
@@ -183,11 +256,6 @@ export default async function DoctorProfilePage({ params }) {
           available_slots: {
             orderBy: { startTime: "asc" },
           },
-        },
-      },
-      _count: {
-        select: {
-          appointments: true,
         },
       },
     },
@@ -240,14 +308,14 @@ export default async function DoctorProfilePage({ params }) {
                 </div>
               </div>
             </div>
-              <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
-                <p className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-300">
-                  Fee
-                </p>
-                <p className="mt-1 text-xl font-black text-gray-900 dark:text-white">
-                  {formatFee(doctor.consultationFee)}
-                </p>
-              </div>
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-300">
+                Fee
+              </p>
+              <p className="mt-1 text-xl font-black text-gray-900 dark:text-white">
+                {formatFee(doctor.consultationFee)}
+              </p>
+            </div>
           </div>
         </section>
 
