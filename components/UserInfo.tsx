@@ -64,7 +64,7 @@ export default function UserInfo() {
 
   if (user.role === "DOCTOR" && user.doctor) {
     const doctor = user.doctor;
-    const profilePath = `/doctor/${doctor.doctor_id}/profile`;
+    const profilePath = `/doctorprofile/${doctor.id}`;
 
     return (
       <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-600">
