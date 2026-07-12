@@ -251,9 +251,6 @@ function PatientListContent() {
           <div className="flex-1 min-w-[300px]">
             <TypeaheadSearch
               entity="patients"
-              searchContext={{
-                profileBasePath: `/receptionist/${receptionistId}/patients`,
-              }}
               placeholder="Search by Name, Patient ID, or Phone Number..."
             />
           </div>
@@ -309,7 +306,7 @@ function PatientListContent() {
                     const genderAgeLabel = age != null
                       ? `${formatGender(patient.gender)} / ${age}`
                       : formatGender(patient.gender);
-                    const profileHref = `/patientprofile?id=${patient.id}`;
+                    const profileHref = `/patientprofile/${patient.id}`;
 
                     return (
                       <tr

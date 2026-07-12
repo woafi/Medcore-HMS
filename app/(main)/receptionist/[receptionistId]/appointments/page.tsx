@@ -1,12 +1,13 @@
 "use client";
 
 import { use, useState, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AppointmentSortSelect from "@/components/AppointmentSortSelect";
 import BookAppointment from "@/components/BookAppointment";
 import DeleteAppointmentButton from "@/components/DeleteAppointmentButton";
 import Pagination from "@/components/Pagination";
+import TypeaheadSearch from "@/components/TypeaheadSearch";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -144,7 +145,6 @@ function AppointmentManagementContent({
   receptionistId: string;
 }) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const basePath = `/receptionist/${receptionistId}/appointments`;
 
   // ── Extract URL params ──────────────────────────────────────────────────
@@ -162,8 +162,6 @@ function AppointmentManagementContent({
     ? sortParam
     : "latest";
 
-  const searchQuery = searchParams.get("q") || "";
-
   // ── State ───────────────────────────────────────────────────────────────
   const [data, setData] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -179,7 +177,6 @@ function AppointmentManagementContent({
       params.set("page", String(currentPage));
       if (activeStatus) params.set("status", activeStatus);
       if (activeSort !== "latest") params.set("sort", activeSort);
-      if (searchQuery) params.set("q", searchQuery);
 
       const res = await fetch(`/api/appointment?${params.toString()}`);
 
@@ -195,7 +192,7 @@ function AppointmentManagementContent({
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, activeStatus, activeSort, searchQuery]);
+  }, [currentPage, activeStatus, activeSort]);
 
   useEffect(() => {
     fetchAppointments();
@@ -224,42 +221,8 @@ function AppointmentManagementContent({
         </div>
 
         {/* Search */}
-        <div className="bg-foreground p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[300px] relative">
-            <svg
-              className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="search"
-              defaultValue={searchQuery}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const target = e.target as HTMLInputElement;
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (target.value.trim()) {
-                    params.set("q", target.value.trim());
-                  } else {
-                    params.delete("q");
-                  }
-                  params.delete("page");
-                  router.push(`${basePath}?${params.toString()}`);
-                }
-              }}
-              placeholder="Search by patient name, ID, doctor, or department..."
-              className="w-full pl-10 pr-4 py-2.5 bg-foregd border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-600 transition-all text-sm"
-            />
-          </div>
+        <div className="bg-foreground p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <TypeaheadSearch entity="appointments"/>
         </div>
 
         {/* Filter */}
@@ -269,7 +232,7 @@ function AppointmentManagementContent({
             const href = buildListUrl(basePath, {
               status: filter.key,
               sort: activeSort,
-              q: searchQuery,
+              q: "",
               page: currentPage > 1 ? currentPage : undefined,
             });
 
@@ -277,11 +240,10 @@ function AppointmentManagementContent({
               <Link
                 key={filter.key || "all"}
                 href={href}
-                className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  isActive
+                className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${isActive
                     ? "bg-blue-600 text-white"
                     : "bg-white dark:bg-gray-800 border border-blue-600/10 text-gray-700 dark:text-gray-300 hover:bg-blue-600/5"
-                }`}
+                  }`}
               >
                 <span>{filter.label}</span>
                 {filter.key === "" ? (
@@ -366,7 +328,7 @@ function AppointmentManagementContent({
                         className="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400"
                       >
                         No appointments found
-                        {searchQuery || activeStatus ? " for the current filters" : ""}.
+                        {activeStatus ? " for the current filters" : ""}.
                       </td>
                     </tr>
                   )}

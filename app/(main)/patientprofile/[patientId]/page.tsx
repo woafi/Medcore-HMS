@@ -3,21 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Stethoscope, Clock, CheckCircle2, CalendarDays, DoorOpen } from "lucide-react";
 import prisma from "@/lib/prisma";
-import React from "react";
 
-export const revalidate = 3600; // ISR: revalidate every hour
+type Gender = "MALE" | "FEMALE" | "OTHER";
+type BloodGroup = string | null;
+type AppointmentStatus = "SCHEDULED" | "WAITING" | "IN_PROGRESS" | "CHECKED_IN";
 
-// ---- SSG: pre-render the base page at build time ----
+type PageProps = {
+  params: Promise<{ patientId: string }>;
+};
 
-export async function generateStaticParams(): Promise<Record<string, never>[]> {
-  return [{}];
-}
-
-// ---- Helpers ----
-
-function formatGender(gender: string): string {
+function formatGender(gender: Gender | null | undefined): string {
   const labels: Record<string, string> = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
-  return labels[gender] ?? gender;
+  return gender ? labels[gender] ?? gender : "—";
 }
 
 function formatBloodGroup(bloodGroup: string | null | undefined): string {
@@ -28,7 +25,7 @@ function formatBloodGroup(bloodGroup: string | null | undefined): string {
     .replace(/_/g, " ");
 }
 
-function calculateAge(dateOfBirth: Date | string | null, storedAge: number | null): number | null {
+function calculateAge(dateOfBirth: Date | null | undefined, storedAge: number | null | undefined): number | null {
   if (storedAge != null) return storedAge;
   if (!dateOfBirth) return null;
 
@@ -55,7 +52,7 @@ function initialsFromName(name: string | null | undefined): string {
     .toUpperCase();
 }
 
-function formatDate(value: Date | string | null | undefined): string {
+function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -64,7 +61,7 @@ function formatDate(value: Date | string | null | undefined): string {
   }).format(new Date(value));
 }
 
-function formatDateTime(value: Date | string | null | undefined): string {
+function formatDateTime(value: string | Date | null | undefined): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -98,17 +95,7 @@ function getAppointmentStatusClasses(status: string): string {
   }
 }
 
-// ---- Components ----
-
-function ContactRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: string;
-  label: string;
-  children: React.ReactNode;
-}) {
+function ContactRow({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
       <svg
@@ -128,52 +115,16 @@ function ContactRow({
   );
 }
 
-// ---- Page ----
-
-type Params = Promise<Record<string, string>>;
-type SearchParams = Promise<{ id?: string | string[] }>;
-
 export default async function PatientProfilePage({
   params,
-  searchParams,
 }: {
-  params: Params;
-  searchParams: SearchParams;
+  params: Promise<{ patientId: string }>;
 }) {
-  const resolvedParams = await params;
-  const receptionistId = resolvedParams?.receptionistId ?? "";
-  const query = await searchParams;
-  const rawId = Array.isArray(query?.id) ? query.id[0] : query?.id;
-  const patientsListHref = `/receptionist/${receptionistId}/patients`;
-
-  if (!rawId) {
-    return (
-      <div className="flex flex-1 flex-col overflow-x-hidden bg-background text-gray-900 dark:text-gray-100">
-        <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-6 py-8 lg:px-10">
-          <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-              Select a Patient
-            </h1>
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-              Open a patient profile from the directory using the view action, or add{" "}
-              <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-900">?id=</code>{" "}
-              with the patient record id in the URL.
-            </p>
-            <Link
-              href={patientsListHref}
-              className="mt-6 inline-flex rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700"
-            >
-              Back to Patient Directory
-            </Link>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const { patientId } = await params;
 
   const patient = await prisma.patient.findFirst({
     where: {
-      OR: [{ id: rawId }, { patientId: rawId }],
+      OR: [{ id: patientId }, { patientId: patientId }],
     },
     include: {
       appointments: {
@@ -340,7 +291,7 @@ export default async function PatientProfilePage({
 
           <div className="p-4 border-t border-gray-100 dark:border-gray-800">
             <Link
-              href={patientsListHref}
+              href="/patients"
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,13 +307,13 @@ export default async function PatientProfilePage({
           </div>
         </aside>
 
-        {/* Main content — unchanged from original */}
+        {/* Main content */}
         <main className="order-1 flex-1 flex flex-col min-w-0 overflow-y-auto bg-background">
           <div className="sticky top-0 z-10 bg-foreground backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-6 py-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <Link
-                  href={patientsListHref}
+                  href="/patients"
                   className="lg:hidden inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 mb-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -387,7 +338,7 @@ export default async function PatientProfilePage({
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  href={`/receptionist/${receptionistId}/appointments`}
+                  href="/appointments"
                   className="flex items-center gap-2 px-4 h-10 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-md shadow-blue-600/20"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -449,7 +400,7 @@ export default async function PatientProfilePage({
                     No appointments on record yet.
                   </p>
                   <Link
-                    href={`/receptionist/${receptionistId}/appointments`}
+                    href="/appointments"
                     className="mt-4 inline-flex text-sm font-bold text-blue-600 hover:underline"
                   >
                     Schedule an appointment
@@ -477,6 +428,7 @@ export default async function PatientProfilePage({
                         </div>
                       </div>
                       <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+
                         {/* Header: Doctor info + Time chip */}
                         <div className="flex justify-between items-start gap-3 flex-wrap">
                           <div className="flex items-center gap-3">
@@ -493,6 +445,7 @@ export default async function PatientProfilePage({
                               </p>
                             </div>
                           </div>
+
                           <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 flex-shrink-0">
                             <Clock className="w-3.5 h-3.5 text-gray-400" />
                             <span className="text-[13px] font-medium text-gray-900 dark:text-white">
@@ -503,6 +456,7 @@ export default async function PatientProfilePage({
 
                         {/* Info row: Status · Visit date · Room */}
                         <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 grid grid-cols-3 gap-2">
+
                           {/* Status */}
                           <div className="flex flex-col gap-0.5">
                             <span className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
@@ -535,6 +489,7 @@ export default async function PatientProfilePage({
                               Room {appointment.doctor?.room}
                             </span>
                           </div>
+
                         </div>
                       </div>
                     </article>
@@ -547,4 +502,14 @@ export default async function PatientProfilePage({
       </div>
     </div>
   );
+}
+
+export async function generateStaticParams() {
+  const patients = await prisma.patient.findMany({
+    select: { id: true },
+  });
+
+  return patients.map((patient) => ({
+    patientId: patient.id,
+  }));
 }
