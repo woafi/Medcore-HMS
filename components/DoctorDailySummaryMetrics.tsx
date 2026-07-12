@@ -36,8 +36,6 @@ type AppointmentPatient = {
 type AppointmentItem = {
   id: string;
   date: string;
-  startTime: string;
-  endTime: string;
   status: string;
   time: string;
   patient: AppointmentPatient;
@@ -64,7 +62,7 @@ type DashboardResponse = {
   appointments: Array<{
     id: string;
     date: string;
-    startTime: string;
+    time: string;
     endTime: string;
     status: string;
     patient: {
@@ -79,10 +77,10 @@ type DashboardResponse = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  WAITING: "Waiting",
   IN_PROGRESS: "In Progress",
   CHECKED_IN: "Checked In",
+  SCHEDULED: "Scheduled",
+  WAITING: "Waiting",
 };
 
 const STATUS_ACTIONS = ["IN_PROGRESS", "CHECKED_IN"];
@@ -116,17 +114,6 @@ function getStatusBadgeClasses(status: string): string {
     default:
       return "bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-200";
   }
-}
-
-function formatAppointmentTime(startTime: string, endTime: string): string {
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  const start = formatter.format(new Date(startTime));
-  if (!endTime) return start;
-  const end = formatter.format(new Date(endTime));
-  return `${start} - ${end}`;
 }
 
 const emptyMetrics: DashboardMetrics = {
@@ -178,10 +165,8 @@ const DoctorDailySummaryMetrics = ({ doctor, doctorId, pusherConfig }: DoctorDai
         const mappedAppointments: AppointmentItem[] = (payload.appointments || []).map((a) => ({
           id: a.id,
           date: a.date,
-          startTime: a.startTime,
-          endTime: a.endTime,
           status: a.status,
-          time: formatAppointmentTime(a.startTime, a.endTime),
+          time: a.time,
           patient: {
             name: a.patient.name,
             patientId: a.patient.patientId,
@@ -190,7 +175,6 @@ const DoctorDailySummaryMetrics = ({ doctor, doctorId, pusherConfig }: DoctorDai
             initials: a.patient.initials,
           },
         }));
-
         setAppointments(mappedAppointments);
       } catch (fetchError) {
         setError(fetchError instanceof Error ? fetchError.message : String(fetchError));
@@ -469,7 +453,7 @@ const DoctorDailySummaryMetrics = ({ doctor, doctorId, pusherConfig }: DoctorDai
                         <AppointmentButton
                           key={status}
                           text={STATUS_LABELS[status]}
-                          disabled={appointment.status === status || updatingId === appointment.id}
+                          disabled={appointment.status === status || updatingId === appointment.id || appointment.status === "SCHEDULED"}
                           onClick={() => updateAppointmentStatus(appointment.id, status)}
                         />
                       ))}

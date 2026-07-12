@@ -230,7 +230,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ok: true,
       receptionist,
       metrics,
-      appointments: appointments.map(serializeAppointment),
+      appointments: appointments
+        .filter((a) => a.status === "SCHEDULED" || a.status === "WAITING")
+        .map(serializeAppointment),
       realtime: {
         channel: "reception-dashboard",
         event: "appointments-updated",

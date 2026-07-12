@@ -34,8 +34,6 @@ type AppointmentPatient = {
 type AppointmentItem = {
   id: string;
   date: string;
-  startTime: string;
-  endTime: string;
   status: string;
   time: string;
   patient: AppointmentPatient;
@@ -67,10 +65,9 @@ type DashboardResponse = {
   appointments: Array<{
     id: string;
     date: string;
-    startTime: string;
+    time: string;
     endTime: string;
     status: string;
-    time: string;
     patient: {
       name: string;
       patientId: string;
@@ -94,7 +91,7 @@ const STATUS_LABELS: Record<string, string> = {
   CHECKED_IN: "Checked In",
 };
 
-const ALL_STATUS_ACTIONS = ["SCHEDULED", "WAITING", "IN_PROGRESS", "CHECKED_IN"];
+const ALL_STATUS_ACTIONS = ["SCHEDULED", "WAITING"];
 
 function formatDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -115,27 +112,12 @@ function formatDashboardDate(date: Date): string {
 
 function getStatusBadgeClasses(status: string): string {
   switch (status) {
-    case "CHECKED_IN":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
-    case "IN_PROGRESS":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
     case "WAITING":
       return "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300";
     case "SCHEDULED":
     default:
       return "bg-slate-100 text-slate-800 dark:bg-white/10 dark:text-slate-200";
   }
-}
-
-function formatAppointmentTime(startTime: string, endTime: string): string {
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  const start = formatter.format(new Date(startTime));
-  if (!endTime) return start;
-  const end = formatter.format(new Date(endTime));
-  return `${start} - ${end}`;
 }
 
 const emptyMetrics: DashboardMetrics = {
@@ -191,10 +173,8 @@ const ReceptionDailySummaryMetrics = ({
         const mappedAppointments: AppointmentItem[] = (payload.appointments || []).map((a) => ({
           id: a.id,
           date: a.date,
-          startTime: a.startTime,
-          endTime: a.endTime,
           status: a.status,
-          time: formatAppointmentTime(a.startTime, a.endTime),
+          time: a.time,
           patient: {
             name: a.patient.name,
             patientId: a.patient.patientId,
@@ -210,6 +190,7 @@ const ReceptionDailySummaryMetrics = ({
         }));
 
         setAppointments(mappedAppointments);
+        console.log(mappedAppointments[0])
       } catch (fetchError) {
         setError(fetchError instanceof Error ? fetchError.message : String(fetchError));
       } finally {
@@ -476,21 +457,18 @@ const ReceptionDailySummaryMetrics = ({
                           </span>
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {appointment.patient.patientId} - {appointment.patient.phone}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          Dr. {appointment.doctor.name} - {appointment.doctor.specialization}
-                          {appointment.doctor.room ? ` (Room ${appointment.doctor.room})` : ""}
+                          {appointment.doctor.specialization} - {appointment.doctor.name} - Room{" "}
+                          {appointment.doctor.room || "TBD"} - {appointment.patient.phone}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-end gap-2 xl:w-[260px]">
-                      {ALL_STATUS_ACTIONS.filter((s) => s !== appointment.status).map((status) => (
+                      {ALL_STATUS_ACTIONS.map((status) => (
                         <AppointmentButton
                           key={status}
                           text={STATUS_LABELS[status]}
-                          disabled={updatingId === appointment.id}
+                          disabled={appointment.status === status || updatingId === appointment.id}
                           onClick={() => updateAppointmentStatus(appointment.id, status)}
                         />
                       ))}
