@@ -2,7 +2,7 @@ import WeeklyAvailability from "@/components/WeeklyAvailability";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-export default async function DoctorWeeklyAvailabilityPage({ params }) {
+export default async function DoctorWeeklyAvailabilityPage({ params }: { params: Promise<{ doctorId: string }> }) {
   const { doctorId } = await params;
 
   const doctor = await prisma.doctor.findFirst({

@@ -7,7 +7,21 @@ import {
   deleteAvailability,
 } from "@/app/actions/availabilityActions";
 
-const STATUS_CONFIG = {
+type TimeSlotRow = {
+  id?: string;
+  start: string;
+  end: string;
+  isBooked?: boolean;
+};
+
+type AvailabilityRow = {
+  id: string;
+  day: string;
+  status: string;
+  timeSlots: TimeSlotRow[];
+};
+
+const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string; border: string; slotBg: string; slotText: string; slotBorder: string; slotBgHover?: string }> = {
   Available: {
     bg: "bg-emerald-50 dark:bg-emerald-900/20",
     text: "text-emerald-700 dark:text-emerald-400",
@@ -52,20 +66,20 @@ const TIMELINE_DURATION = TIMELINE_END - TIMELINE_START;
 const DEFAULT_SLOT = { start: "09:00", end: "10:00" };
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-function statusFromDb(status) {
+function statusFromDb(status: string) {
   if (status === "Emergency_Only") return "Emergency Only";
   if (status === "Off_duty") return "Off-duty";
   return status;
 }
 
-function timeFromDate(value) {
+function timeFromDate(value: string | Date) {
   const date = new Date(value);
   const h = String(date.getHours()).padStart(2, "0");
   const m = String(date.getMinutes()).padStart(2, "0");
   return `${h}:${m}`;
 }
 
-function mapAvailabilitiesToRows(availabilities) {
+function mapAvailabilitiesToRows(availabilities: any[] | undefined | null): AvailabilityRow[] {
   if (!availabilities?.length) return [];
   return availabilities.map((a) => ({
     id: a.id,
@@ -80,16 +94,16 @@ function mapAvailabilitiesToRows(availabilities) {
   }));
 }
 
-function mapAvailabilityToRow(availability) {
+function mapAvailabilityToRow(availability: any): AvailabilityRow {
   return mapAvailabilitiesToRows([availability])[0];
 }
 
-function toMins(t) {
+function toMins(t: string): number {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
 }
 
-function validateEntry(entry) {
+function validateEntry(entry: { day?: string; status: string; timeSlots: TimeSlotRow[] }): string {
   if (!entry.day) return "Please choose a day";
   if (entry.status === "Off-duty") return "";
   if (!entry.timeSlots.length) return "Add at least one time slot";
@@ -106,19 +120,19 @@ function validateEntry(entry) {
   return "";
 }
 
-function slotListForStatus(status, slots) {
+function slotListForStatus(status: string, slots: TimeSlotRow[]): TimeSlotRow[] {
   if (status === "Off-duty") return [];
   return slots.length > 0 ? slots : [{ ...DEFAULT_SLOT }];
 }
 
-function to12Hour(t) {
+function to12Hour(t: string): string {
   const [h, m] = t.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
   return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-function pct(mins) {
+function pct(mins: number): number {
   return ((mins - TIMELINE_START) / TIMELINE_DURATION) * 100;
 }
 
@@ -134,7 +148,7 @@ const HOUR_MARKS = Array.from({ length: 24 }, (_, i) => ({
   pct: pct(i * 60),
 }));
 
-function StatusPill({ status }) {
+function StatusPill({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Off-duty"];
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
@@ -144,7 +158,7 @@ function StatusPill({ status }) {
   );
 }
 
-function SlotTooltip({ slot, visible }) {
+function SlotTooltip({ slot, visible }: { slot: TimeSlotRow; visible: boolean }) {
   if (!visible) return null;
   return (
     <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 bg-slate-900 text-white text-[10px] font-mono rounded-md px-2 py-1 whitespace-nowrap shadow-lg pointer-events-none">
@@ -155,7 +169,7 @@ function SlotTooltip({ slot, visible }) {
   );
 }
 
-function TimelineBar({ day }) {
+function TimelineBar({ day }: { day: AvailabilityRow }) {
   const [hoveredSlot, setHoveredSlot] = useState(null);
   const cfg = STATUS_CONFIG[day.status] || STATUS_CONFIG["Off-duty"];
 
@@ -199,7 +213,11 @@ function TimelineBar({ day }) {
   );
 }
 
-export default function AvailabilitySchedule({ availabilities = [], doctorId, revalidatePaths = [] }) {
+export default function AvailabilitySchedule({ availabilities = [], doctorId, revalidatePaths = [] }: {
+  availabilities?: any[];
+  doctorId?: string;
+  revalidatePaths?: string[];
+}) {
   const initialRows = useMemo(() => mapAvailabilitiesToRows(availabilities), [availabilities]);
   const [rows, setRows] = useState(initialRows);
   const [view, setView] = useState("list");

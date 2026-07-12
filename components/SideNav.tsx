@@ -18,7 +18,7 @@ const navIconNames = {
 const SideNav = () => {
   const pathname = usePathname();
   const { user, loading } = useCurrentUser();
-  const navLinks = getNavLinksForRole(user?.role);
+  const navLinks = getNavLinksForRole(user);
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-gray-200 bg-foreground shadow-sm dark:border-gray-800 lg:flex lg:flex-col lg:justify-between">

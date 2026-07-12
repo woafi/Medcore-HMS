@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { ApiUser } from "@/lib/userTypes";
 
 export type NavIcon =
   | "dashboard"
@@ -15,40 +15,98 @@ export type NavLink = {
   exact?: boolean;
 };
 
-const ADMIN_LINKS: NavLink[] = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: "dashboard", exact: true },
-  { name: "Doctors", href: "/admin/doctors", icon: "doctors" },
-  { name: "Receptionists", href: "/admin/receptionists", icon: "receptionists" },
-];
+function getAdminLinks(): NavLink[] {
+  return [
+    {
+      name: "Dashboard",
+      href: "/admin/dashboard",
+      icon: "dashboard",
+      exact: true,
+    },
+    {
+      name: "Doctors",
+      href: "/admin/doctors",
+      icon: "doctors",
+    },
+    {
+      name: "Receptionists",
+      href: "/admin/receptionists",
+      icon: "receptionists",
+    },
+  ];
+}
 
-const DOCTOR_LINKS: NavLink[] = [
-  { name: "Dashboard", href: "/dashboard", icon: "dashboard", exact: true },
-  { name: "Appointments", href: "/appointments", icon: "appointments" },
-  { name: "Weekly Schedule", href: "/weeklyschedule", icon: "weeklySchedule" },
-];
+function getDoctorLinks(doctorId: string): NavLink[] {
+  return [
+    {
+      name: "Dashboard",
+      href: `/doctor/${doctorId}/dashboard`,
+      icon: "dashboard",
+      exact: true,
+    },
+    {
+      name: "Appointments",
+      href: `/doctor/${doctorId}/appointments`,
+      icon: "appointments",
+    },
+    {
+      name: "Weekly Schedule",
+      href: `/doctor/${doctorId}/weekly-schedule`,
+      icon: "weeklySchedule",
+    },
+  ];
+}
 
-const RECEPTIONIST_LINKS: NavLink[] = [
-  { name: "Dashboard", href: "/dashboard", icon: "dashboard", exact: true },
-  { name: "Patient Records", href: "/patientsrecords", icon: "patientRecords" },
-  { name: "Appointments", href: "/appointments", icon: "appointments" },
-  { name: "Doctors", href: "/doctors", icon: "doctors" },
-];
+function getReceptionistLinks(receptionistId: string): NavLink[] {
+  return [
+    {
+      name: "Dashboard",
+      href: `/receptionist/${receptionistId}/dashboard`,
+      icon: "dashboard",
+      exact: true,
+    },
+    {
+      name: "Patient Records",
+      href: `/receptionist/${receptionistId}/patientsrecords`,
+      icon: "patientRecords",
+    },
+    {
+      name: "Appointments",
+      href: `/receptionist/${receptionistId}/appointments`,
+      icon: "appointments",
+    },
+    {
+      name: "Doctors",
+      href: `/receptionist/${receptionistId}/availabledoctorslist`,
+      icon: "doctors",
+    },
+  ];
+}
 
-export function getNavLinksForRole(role: Role | null | undefined): NavLink[] {
-  switch (role) {
+export function getNavLinksForRole(user: ApiUser | null): NavLink[] {
+  if (!user) return [];
+
+  switch (user.role) {
     case "ADMIN":
     case "SUPER_ADMIN":
-      return ADMIN_LINKS;
+      return getAdminLinks();
+
     case "DOCTOR":
-      return DOCTOR_LINKS;
+      return getDoctorLinks(user.id);
+
     case "RECEPTIONIST":
-      return RECEPTIONIST_LINKS;
+      return getReceptionistLinks(user.id);
+
     default:
       return [];
   }
 }
 
-export function isNavLinkActive(pathname: string, href: string, exact = false): boolean {
+export function isNavLinkActive(
+  pathname: string,
+  href: string,
+  exact = false
+): boolean {
   if (exact) {
     return pathname === href;
   }

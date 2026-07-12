@@ -64,7 +64,7 @@ export default function UserInfo() {
 
   if (user.role === "DOCTOR" && user.doctor) {
     const doctor = user.doctor;
-    const profilePath = `/doctorprofile/${doctor.id}`;
+    const profilePath = `/doctorprofile/${user.id}`;
 
     return (
       <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-600">
@@ -102,7 +102,7 @@ export default function UserInfo() {
 
   if (user.role === "RECEPTIONIST" && user.receptionist) {
     const receptionist = user.receptionist;
-    const profilePath = `/receptionist/${receptionist.receptionists_id}/profile`;
+    const profilePath = `/receptionprofile/${user.id}`;
 
     return (
       <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-600">

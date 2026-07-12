@@ -142,7 +142,7 @@ export default async function ReceptionistListPage({ searchParams }: { searchPar
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex gap-2 justify-end">
-                        <Link href={`/dashboard/receptionists/editingareceptionist?id=${receptionist.id}`}>
+                        <Link href={`/admin/receptionists/editingareceptionist?id=${receptionist.id}`}>
                           <button className="cursor-pointer p-2 text-gray-400 hover:text-blue-600 transition-colors bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <svg
                               className="w-5 h-5"
@@ -165,7 +165,7 @@ export default async function ReceptionistListPage({ searchParams }: { searchPar
                             </svg>
                           </button>
                         </Link>
-                        <Link href={`/receptionist/${receptionist.id}/dashboard`}>
+                        <Link href={`/receptionprofile/${receptionist.id}`}>
                           <button className="cursor-pointer p-2 text-gray-400 hover:text-blue-600 transition-colors bg-gray-50 dark:bg-gray-700 rounded-lg">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
