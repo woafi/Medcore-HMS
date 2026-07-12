@@ -4,6 +4,7 @@ import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import Image from "next/image";
 import TypeaheadSearch from "@/components/TypeaheadSearch";
+import SpecializationFilter from "@/components/SpecializationFilter";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
@@ -61,7 +62,10 @@ function DoctorListContent() {
     setError("");
 
     try {
-      const res = await fetch(`/api/doctors?page=${currentPage}`);
+      const specialization = searchParams.get("specialization") || "";
+      const params = new URLSearchParams({ page: String(currentPage) });
+      if (specialization) params.set("specialization", specialization);
+      const res = await fetch(`/api/doctors?${params.toString()}`);
       if (!res.ok) {
         throw new Error(
           res.status === 401
@@ -98,7 +102,7 @@ function DoctorListContent() {
     return () => {
       cancelledRef.current = true;
     };
-  }, [currentPage]);
+  }, [currentPage, searchParams]);
 
   if (error) {
     return (
@@ -130,6 +134,7 @@ function DoctorListContent() {
             placeholder="Search by name, doctor ID, phone, or email..."
           />
         </div>
+        <SpecializationFilter />
       </div>
 
       {/* Data Table */}

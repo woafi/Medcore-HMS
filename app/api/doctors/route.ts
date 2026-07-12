@@ -21,12 +21,18 @@ export async function GET(request: NextRequest) {
       Number.isInteger(requestedPage) && requestedPage > 0
         ? requestedPage
         : 1;
+    const specializationFilter = searchParams.get("specialization") || "";
 
-    const totalDoctors = await prisma.doctor.count();
+    const where = specializationFilter
+      ? { specialization: specializationFilter }
+      : {};
+
+    const totalDoctors = await prisma.doctor.count({ where });
     const totalPages = Math.max(1, Math.ceil(totalDoctors / ITEMS_PER_PAGE));
     const safeCurrentPage = Math.min(currentPage, totalPages);
 
     const doctors = await prisma.doctor.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       skip: (safeCurrentPage - 1) * ITEMS_PER_PAGE,
       take: ITEMS_PER_PAGE,
