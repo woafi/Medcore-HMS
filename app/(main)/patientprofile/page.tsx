@@ -3,13 +3,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Stethoscope, Clock, CheckCircle2, CalendarDays, DoorOpen } from "lucide-react";
 import prisma from "@/lib/prisma";
+import React from "react";
 
-function formatGender(gender) {
-  const labels = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
+export const revalidate = 3600; // ISR: revalidate every hour
+
+// ---- SSG: pre-render the base page at build time ----
+
+export async function generateStaticParams(): Promise<Record<string, never>[]> {
+  return [{}];
+}
+
+// ---- Helpers ----
+
+function formatGender(gender: string): string {
+  const labels: Record<string, string> = { MALE: "Male", FEMALE: "Female", OTHER: "Other" };
   return labels[gender] ?? gender;
 }
 
-function formatBloodGroup(bloodGroup) {
+function formatBloodGroup(bloodGroup: string | null | undefined): string {
   if (!bloodGroup) return "—";
   return bloodGroup
     .replace(/_Positive$/, "+")
@@ -17,7 +28,7 @@ function formatBloodGroup(bloodGroup) {
     .replace(/_/g, " ");
 }
 
-function calculateAge(dateOfBirth, storedAge) {
+function calculateAge(dateOfBirth: Date | string | null, storedAge: number | null): number | null {
   if (storedAge != null) return storedAge;
   if (!dateOfBirth) return null;
 
@@ -33,7 +44,7 @@ function calculateAge(dateOfBirth, storedAge) {
   return age;
 }
 
-function initialsFromName(name) {
+function initialsFromName(name: string | null | undefined): string {
   if (!name?.trim()) return "?";
   return name
     .trim()
@@ -44,7 +55,7 @@ function initialsFromName(name) {
     .toUpperCase();
 }
 
-function formatDate(value) {
+function formatDate(value: Date | string | null | undefined): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -53,7 +64,7 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function formatDateTime(value) {
+function formatDateTime(value: Date | string | null | undefined): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -64,8 +75,8 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-function formatAppointmentStatus(status) {
-  const labels = {
+function formatAppointmentStatus(status: string): string {
+  const labels: Record<string, string> = {
     SCHEDULED: "Scheduled",
     WAITING: "Waiting",
     IN_PROGRESS: "In Progress",
@@ -74,7 +85,7 @@ function formatAppointmentStatus(status) {
   return labels[status] ?? status;
 }
 
-function getAppointmentStatusClasses(status) {
+function getAppointmentStatusClasses(status: string): string {
   switch (status) {
     case "CHECKED_IN":
       return "text-emerald-800 dark:text-emerald-400";
@@ -87,7 +98,17 @@ function getAppointmentStatusClasses(status) {
   }
 }
 
-function ContactRow({ icon, label, children }) {
+// ---- Components ----
+
+function ContactRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: string;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex gap-3">
       <svg
@@ -107,8 +128,20 @@ function ContactRow({ icon, label, children }) {
   );
 }
 
-export default async function PatientProfilePage({ params, searchParams }) {
-  const { receptionistId } = await params;
+// ---- Page ----
+
+type Params = Promise<Record<string, string>>;
+type SearchParams = Promise<{ id?: string | string[] }>;
+
+export default async function PatientProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
+  const resolvedParams = await params;
+  const receptionistId = resolvedParams?.receptionistId ?? "";
   const query = await searchParams;
   const rawId = Array.isArray(query?.id) ? query.id[0] : query?.id;
   const patientsListHref = `/receptionist/${receptionistId}/patients`;
@@ -323,7 +356,7 @@ export default async function PatientProfilePage({ params, searchParams }) {
           </div>
         </aside>
 
-        {/* Main content */}
+        {/* Main content — unchanged from original */}
         <main className="order-1 flex-1 flex flex-col min-w-0 overflow-y-auto bg-background">
           <div className="sticky top-0 z-10 bg-foreground backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-6 py-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -444,7 +477,6 @@ export default async function PatientProfilePage({ params, searchParams }) {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
-
                         {/* Header: Doctor info + Time chip */}
                         <div className="flex justify-between items-start gap-3 flex-wrap">
                           <div className="flex items-center gap-3">
@@ -461,7 +493,6 @@ export default async function PatientProfilePage({ params, searchParams }) {
                               </p>
                             </div>
                           </div>
-
                           <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 flex-shrink-0">
                             <Clock className="w-3.5 h-3.5 text-gray-400" />
                             <span className="text-[13px] font-medium text-gray-900 dark:text-white">
@@ -472,7 +503,6 @@ export default async function PatientProfilePage({ params, searchParams }) {
 
                         {/* Info row: Status · Visit date · Room */}
                         <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 grid grid-cols-3 gap-2">
-
                           {/* Status */}
                           <div className="flex flex-col gap-0.5">
                             <span className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
@@ -505,7 +535,6 @@ export default async function PatientProfilePage({ params, searchParams }) {
                               Room {appointment.doctor?.room}
                             </span>
                           </div>
-
                         </div>
                       </div>
                     </article>

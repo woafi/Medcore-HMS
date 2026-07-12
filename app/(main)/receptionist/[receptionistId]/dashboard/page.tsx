@@ -1,9 +1,10 @@
-import ReceptionDailySummaryMetrics from "@/components/ReceptionDailySummaryMetrics";
+import ReceptionDailySummaryMetrics from "@/components/ReceptionDailySummaryMetrics"
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
+type Params = Promise<{ receptionistId: string }>;
 
-export default async function ReceptionPage({ params }) {
+export default async function ReceptionPage({ params }: { params: Params }) {
   const { receptionistId } = await params;
 
   const receptionist = await prisma.receptionist.findFirst({
@@ -31,7 +32,7 @@ export default async function ReceptionPage({ params }) {
 
   return (
     <div className="relative flex-1 overflow-x-hidden bg-background text-gray-900 dark:text-gray-100 font-sans">
-      <DailySummaryMetrics
+      <ReceptionDailySummaryMetrics
         receptionist={receptionist}
         receptionistId={receptionistId}
         pusherConfig={pusherConfig}

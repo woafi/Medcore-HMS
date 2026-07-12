@@ -20,6 +20,7 @@ if (!jwtSecret) {
 const JWT_SECRET = new TextEncoder().encode(jwtSecret);
 
 const ROLE_ROUTES: Record<string, readonly UserRole[]> = {
+    "/patientprofile": ["RECEPTIONIST", "DOCTOR"],
     "/receptionprofile": ["RECEPTIONIST", "SUPER_ADMIN", "ADMIN"],
     "/doctorprofile": ["RECEPTIONIST", "SUPER_ADMIN", "ADMIN", "DOCTOR"],
     "/admin": ["SUPER_ADMIN", "ADMIN"],

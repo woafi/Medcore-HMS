@@ -67,7 +67,7 @@ function getReceptionistLinks(receptionistId: string): NavLink[] {
     },
     {
       name: "Patient Records",
-      href: `/receptionist/${receptionistId}/patientsrecords`,
+      href: `/receptionist/${receptionistId}/patients`,
       icon: "patientRecords",
     },
     {

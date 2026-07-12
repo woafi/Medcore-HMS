@@ -3,31 +3,108 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Pusher from "pusher-js";
 import Image from "next/image";
-import Link from "next/link";
 
 import AppointmentCalender from "@/components/AppointmentCalender";
 import AppointmentButton from "@/components/AppointmentButton";
 
-const STATUS_LABELS = {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ReceptionistInfo = {
+  id: string;
+  userId: string;
+  receptionists_id: string;
+  name: string;
+};
+
+type PusherConfig = {
+  key: string;
+  cluster: string;
+  channel: string;
+  event: string;
+};
+
+type AppointmentPatient = {
+  name: string;
+  patientId: string;
+  profileImage: string | null;
+  phone: string | null;
+  initials: string;
+};
+
+type AppointmentItem = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  time: string;
+  patient: AppointmentPatient;
+  doctor: {
+    name: string;
+    specialization: string;
+    room: number | null;
+  };
+};
+
+type DashboardMetrics = {
+  total: number;
+  patientSeen: number;
+  remaining: number;
+  inProgress: number;
+  waiting: number;
+  completionPercent: number;
+};
+
+interface ReceptionDailySummaryMetricsProps {
+  receptionist: ReceptionistInfo;
+  receptionistId: string;
+  pusherConfig: PusherConfig;
+}
+
+type DashboardResponse = {
+  ok: boolean;
+  metrics: DashboardMetrics;
+  appointments: Array<{
+    id: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+    time: string;
+    patient: {
+      name: string;
+      patientId: string;
+      profileImage: string | null;
+      phone: string | null;
+      initials: string;
+    };
+    doctor: {
+      name: string;
+      specialization: string;
+      room: number | null;
+    };
+  }>;
+  error?: string;
+};
+
+const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: "Scheduled",
   WAITING: "Waiting",
   IN_PROGRESS: "In Progress",
   CHECKED_IN: "Checked In",
 };
 
-const STATUS_ACTIONS = ["SCHEDULED", "WAITING"];
+const ALL_STATUS_ACTIONS = ["SCHEDULED", "WAITING", "IN_PROGRESS", "CHECKED_IN"];
 
-function formatDateKey(date) {
-  const selected = Array.isArray(date) ? date?.[0] : date;
-  const safeDate = selected instanceof Date ? selected : new Date();
-  const year = safeDate.getFullYear();
-  const month = String(safeDate.getMonth() + 1).padStart(2, "0");
-  const day = String(safeDate.getDate()).padStart(2, "0");
+function formatDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
-function formatDashboardDate(date) {
+function formatDashboardDate(date: Date): string {
   return new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     month: "short",
@@ -36,7 +113,7 @@ function formatDashboardDate(date) {
   }).format(date);
 }
 
-function getStatusBadgeClasses(status) {
+function getStatusBadgeClasses(status: string): string {
   switch (status) {
     case "CHECKED_IN":
       return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
@@ -50,7 +127,18 @@ function getStatusBadgeClasses(status) {
   }
 }
 
-const emptyMetrics = {
+function formatAppointmentTime(startTime: string, endTime: string): string {
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const start = formatter.format(new Date(startTime));
+  if (!endTime) return start;
+  const end = formatter.format(new Date(endTime));
+  return `${start} - ${end}`;
+}
+
+const emptyMetrics: DashboardMetrics = {
   total: 0,
   patientSeen: 0,
   remaining: 0,
@@ -59,14 +147,18 @@ const emptyMetrics = {
   completionPercent: 0,
 };
 
-const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConfig }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [metrics, setMetrics] = useState(emptyMetrics);
-  const [appointments, setAppointments] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState("");
-  const [updatingId, setUpdatingId] = useState("");
+const ReceptionDailySummaryMetrics = ({
+  receptionist,
+  receptionistId,
+  pusherConfig,
+}: ReceptionDailySummaryMetricsProps) => {
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [metrics, setMetrics] = useState<DashboardMetrics>(emptyMetrics);
+  const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [updatingId, setUpdatingId] = useState<string>("");
 
   const dateKey = useMemo(() => formatDateKey(selectedDate), [selectedDate]);
   const todayLabel = useMemo(() => formatDashboardDate(selectedDate), [selectedDate]);
@@ -87,17 +179,39 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
           receptionistId,
           date: dateKey,
         });
-        const response = await fetch(`/api/receptiondashboard?${params.toString()}`);
-        const payload = await response.json();
+        const response = await fetch(`/api/receptionistdashboard?${params.toString()}`);
+        const payload: DashboardResponse = await response.json();
 
         if (!response.ok || !payload.ok) {
           throw new Error(payload.error || "Dashboard data could not be loaded.");
         }
 
         setMetrics(payload.metrics || emptyMetrics);
-        setAppointments(payload.appointments || []);
+
+        const mappedAppointments: AppointmentItem[] = (payload.appointments || []).map((a) => ({
+          id: a.id,
+          date: a.date,
+          startTime: a.startTime,
+          endTime: a.endTime,
+          status: a.status,
+          time: formatAppointmentTime(a.startTime, a.endTime),
+          patient: {
+            name: a.patient.name,
+            patientId: a.patient.patientId,
+            profileImage: a.patient.profileImage,
+            phone: a.patient.phone,
+            initials: a.patient.initials,
+          },
+          doctor: {
+            name: a.doctor.name,
+            specialization: a.doctor.specialization,
+            room: a.doctor.room,
+          },
+        }));
+
+        setAppointments(mappedAppointments);
       } catch (fetchError) {
-        setError(fetchError.message);
+        setError(fetchError instanceof Error ? fetchError.message : String(fetchError));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -118,8 +232,8 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
     });
     const channel = pusher.subscribe(pusherConfig.channel);
 
-    channel.bind(pusherConfig.event, (payload) => {
-      const eventDateKey = payload?.date ? formatDateKey(new Date(payload.date)) : dateKey;
+    channel.bind(pusherConfig.event, (payload: Record<string, unknown>) => {
+      const eventDateKey = payload?.date ? formatDateKey(new Date(payload.date as string)) : dateKey;
 
       if (eventDateKey === dateKey) {
         fetchDashboard({ silent: true });
@@ -133,12 +247,12 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
     };
   }, [dateKey, fetchDashboard, isRealtimeEnabled, pusherConfig]);
 
-  const updateAppointmentStatus = async (appointmentId, status) => {
+  const updateAppointmentStatus = async (appointmentId: string, status: string) => {
     setUpdatingId(appointmentId);
     setError("");
 
     try {
-      const response = await fetch("/api/receptiondashboard", {
+      const response = await fetch("/api/receptionistdashboard", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -157,7 +271,7 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
 
       await fetchDashboard({ silent: true });
     } catch (updateError) {
-      setError(updateError.message);
+      setError(updateError instanceof Error ? updateError.message : String(updateError));
     } finally {
       setUpdatingId("");
     }
@@ -170,6 +284,9 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
           <div className="flex flex-wrap items-center gap-3">
             <div className="shrink-0 text-xs sm:text-sm font-medium px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-black/5 dark:border-white/10">
               Receptionist ID: {receptionist.receptionists_id}
+            </div>
+            <div className="shrink-0 text-xs sm:text-sm font-medium px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-black/5 dark:border-white/10">
+              {receptionist.name}
             </div>
             <div className="shrink-0 text-xs sm:text-sm font-medium px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/15">
               {isRealtimeEnabled ? "Realtime active" : "Realtime env missing"}
@@ -252,7 +369,7 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
                 </span>
               </div>
               <div
-                className="h-2 rounded-full bg-black/[0.05] dark:bg-white/[0.07] overflow-hidden"
+                className="h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden"
                 role="progressbar"
                 aria-label="Day progress"
                 aria-valuenow={metrics.completionPercent}
@@ -288,10 +405,10 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
           </div>
 
           <a
-            href={`/receptionist/${receptionistId}/appointments`}
+            href={`/receptionist/${receptionistId}/patients`}
             className="px-3 py-2 rounded-xl text-sm font-semibold bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 border border-black/5 dark:border-white/10 transition-colors"
           >
-            Directory
+            Patients
           </a>
         </div>
 
@@ -309,7 +426,7 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
                 No appointments yet
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Add an appointment or pick another date from the calendar.
+                Pick another date from the calendar to review a different schedule.
               </p>
             </div>
           ) : (
@@ -319,7 +436,7 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
                   key={appointment.id}
                   className="px-5 sm:px-6 py-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
                 >
-                  <div className="flex flex-col xl:flex-row xl:items-center gap-3 xl:gap-4 justify-between">
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 xl:gap-4">
                     <div className="flex items-center gap-3 xl:w-56">
                       <div className="shrink-0 px-2.5 py-1 rounded-xl bg-primary/10 text-primary border border-primary/15 text-xs font-bold tracking-wide">
                         {appointment.time}
@@ -328,49 +445,52 @@ const ReceptionDailySummaryMetrics = ({ receptionist, receptionistId, pusherConf
                         {appointment.id.slice(0, 8)}
                       </div>
                     </div>
-                    <Link href={`/receptionist/${receptionistId}/patients/profile?id=${appointment.patient.id}`}>
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 bg-blue-100">
-                          {appointment.patient.profileImage ? (
-                            <Image
-                              src={appointment.patient.profileImage}
-                              alt={appointment.patient.name}
-                              fill
-                              sizes="40px"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                              {appointment.patient.initials}
-                            </div>
-                          )}
+
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 bg-blue-100">
+                        {appointment.patient.profileImage ? (
+                          <Image
+                            src={appointment.patient.profileImage}
+                            alt={appointment.patient.name}
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                            {appointment.patient.initials}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                          <div className="text-sm font-bold text-gray-900 dark:text-gray-50 truncate">
+                            {appointment.patient.name}
+                          </div>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClasses(
+                              appointment.status
+                            )}`}
+                          >
+                            {STATUS_LABELS[appointment.status]}
+                          </span>
                         </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 min-w-0">
-                            <div className="text-sm font-bold text-gray-900 dark:text-gray-50 truncate">
-                              {appointment.patient.name}
-                            </div>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClasses(
-                                appointment.status
-                              )}`}
-                            >
-                              {STATUS_LABELS[appointment.status]}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {appointment.doctor.specialization} - {appointment.doctor.name} - Room{" "}
-                            {appointment.doctor.room || "TBD"} - {appointment.patient.phone}
-                          </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {appointment.patient.patientId} - {appointment.patient.phone}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          Dr. {appointment.doctor.name} - {appointment.doctor.specialization}
+                          {appointment.doctor.room ? ` (Room ${appointment.doctor.room})` : ""}
                         </div>
                       </div>
-                    </Link>
-                    <div className="flex flex-wrap items-center justify-end gap-2 xl:w-[430px]">
-                      {STATUS_ACTIONS.map((status) => (
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-end gap-2 xl:w-[260px]">
+                      {ALL_STATUS_ACTIONS.filter((s) => s !== appointment.status).map((status) => (
                         <AppointmentButton
                           key={status}
                           text={STATUS_LABELS[status]}
-                          disabled={appointment.status === status || updatingId === appointment.id}
+                          disabled={updatingId === appointment.id}
                           onClick={() => updateAppointmentStatus(appointment.id, status)}
                         />
                       ))}
