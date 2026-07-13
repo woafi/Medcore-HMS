@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createAvailability,
   updateAvailability,
-  deleteAvailability,
 } from "@/app/actions/availabilityActions";
 import StatusPill from "./availability/StatusPill";
 import TimelineBar from "./availability/TimelineBar";
@@ -65,7 +64,6 @@ export default function AvailabilitySchedule({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<AvailabilityRow | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [actionError, setActionError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -140,24 +138,6 @@ export default function AvailabilitySchedule({
         );
         setEditingId(null);
         setEditDraft(null);
-      }
-      return result;
-    });
-  };
-
-  // ── Delete Handlers ────────────────────────────────────────────────────
-  const confirmDelete = (id: string) => setDeleteConfirmId(id);
-  const cancelDelete = () => setDeleteConfirmId(null);
-
-  const doDelete = () => {
-    const id = deleteConfirmId;
-    if (!id) return;
-
-    runAction(async () => {
-      const result = await deleteAvailability(id, revalidatePaths);
-      if (result.ok) {
-        setRows((current) => current.filter((r) => r.id !== id));
-        setDeleteConfirmId(null);
       }
       return result;
     });
@@ -255,15 +235,11 @@ export default function AvailabilitySchedule({
           rows={sortedRows}
           editingId={editingId}
           editDraft={editDraft}
-          deleteConfirmId={deleteConfirmId}
           isPending={isPending}
           canEdit={canEdit}
           onStartEdit={startEdit}
           onCancelEdit={cancelEdit}
           onSaveEdit={saveEdit}
-          onConfirmDelete={confirmDelete}
-          onCancelDelete={cancelDelete}
-          onDelete={doDelete}
           onEditDraftChange={handleEditDraftChange}
         />
       )}
@@ -520,29 +496,21 @@ function ListViewContent({
   rows,
   editingId,
   editDraft,
-  deleteConfirmId,
   isPending,
   canEdit,
   onStartEdit,
   onCancelEdit,
   onSaveEdit,
-  onConfirmDelete,
-  onCancelDelete,
-  onDelete,
   onEditDraftChange,
 }: {
   rows: AvailabilityRow[];
   editingId: string | null;
   editDraft: AvailabilityRow | null;
-  deleteConfirmId: string | null;
   isPending: boolean;
   canEdit: boolean;
   onStartEdit: (row: AvailabilityRow) => void;
   onCancelEdit: () => void;
   onSaveEdit: () => void;
-  onConfirmDelete: (id: string) => void;
-  onCancelDelete: () => void;
-  onDelete: () => void;
   onEditDraftChange: (draft: AvailabilityRow) => void;
 }) {
   return (
@@ -712,28 +680,6 @@ function ListViewContent({
                   <div className="flex items-center justify-end gap-1">
                     {!canEdit ? (
                       <span className="text-xs text-slate-400">Read only</span>
-                    ) : deleteConfirmId === row.id ? (
-                      <>
-                        <span className="text-xs text-red-500 font-bold mr-1">
-                          Delete?
-                        </span>
-                        <button
-                          type="button"
-                          disabled={isPending}
-                          onClick={onDelete}
-                          className="text-xs font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 px-2.5 py-1.5 rounded-md transition-colors"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isPending}
-                          onClick={onCancelDelete}
-                          className="text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-md transition-colors"
-                        >
-                          No
-                        </button>
-                      </>
                     ) : isEditing ? (
                       <>
                         <button
@@ -766,16 +712,6 @@ function ListViewContent({
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a4 4 0 01-2.828 1.172H7v-2a4 4 0 011.172-2.828z" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onConfirmDelete(row.id)}
-                          title="Delete"
-                          className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </>

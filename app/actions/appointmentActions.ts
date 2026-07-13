@@ -221,12 +221,15 @@ export async function getDoctorAvailabilityAction(
     }
 
     // Check which slots are already booked for this specific date
+    // We match by time-of-day, not by slotId, because when a doctor 
+    // recreates their schedule the slots get new IDs while appointments 
+    // still exist at the same times (fixes double-booking bug).
     const dayStart = new Date(targetDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(targetDate);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const bookedSlots = await prisma.appointment.findMany({
+    const bookedAppointments = await prisma.appointment.findMany({
       where: {
         doctorId,
         date: {
@@ -234,15 +237,19 @@ export async function getDoctorAvailabilityAction(
           lte: dayEnd,
         },
       },
-      select: { slotId: true },
+      select: { startTime: true },
     });
 
-    const bookedSlotIds = new Set(bookedSlots.map((a) => a.slotId));
+    const bookedTimeKeys = new Set(
+      bookedAppointments.map(
+        (a) => `${a.startTime.getHours()}:${a.startTime.getMinutes()}`
+      )
+    );
 
     const slots: DoctorSlot[] = availability.available_slots.map((slot) => ({
       id: slot.id,
       time: formatTime(slot.startTime),
-      isBooked: slot.is_booked || bookedSlotIds.has(slot.id),
+      isBooked: slot.is_booked || bookedTimeKeys.has(`${slot.startTime.getHours()}:${slot.startTime.getMinutes()}`),
     }));
 
     return { ok: true, slots };
@@ -274,6 +281,45 @@ export async function bookAppointmentAction(
     }
 
     if (slot.is_booked) {
+      return {
+        success: false,
+        message: "This time slot has already been booked.",
+      };
+    }
+
+    // Double-check by time-of-day: if a schedule was recreated after the 
+    // original booking, the new slot has a different ID but the same time.
+    const dayStart = new Date(targetDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(targetDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const existingAppointment = await prisma.appointment.findFirst({
+      where: {
+        doctorId,
+        date: { gte: dayStart, lte: dayEnd },
+        startTime: {
+          gte: new Date(
+            targetDate.getFullYear(),
+            targetDate.getMonth(),
+            targetDate.getDate(),
+            slot.startTime.getHours(),
+            slot.startTime.getMinutes(),
+            0
+          ),
+          lt: new Date(
+            targetDate.getFullYear(),
+            targetDate.getMonth(),
+            targetDate.getDate(),
+            slot.endTime.getHours(),
+            slot.endTime.getMinutes(),
+            0
+          ),
+        },
+      },
+    });
+
+    if (existingAppointment) {
       return {
         success: false,
         message: "This time slot has already been booked.",
