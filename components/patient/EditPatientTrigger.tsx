@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import type { SerializedPatientForEdit } from "@/lib/patientFormHelpers";
 import EditPatientModal from "@/components/patient/EditPatientModal";
 
 // ---------------------------------------------------------------------------
 // Row action — opens the edit-patient modal for a single patient record
 // ---------------------------------------------------------------------------
 
-export default function EditPatientTrigger({ patient }) {
+export default function EditPatientTrigger({ patient }: { patient: SerializedPatientForEdit }) {
   const [showModal, setShowModal] = useState(false);
 
   return (

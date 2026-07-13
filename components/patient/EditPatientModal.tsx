@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { patientEditFormsubmissionAction } from "@/app/actions/patientEditFormsubmissionAction";
 import PatientImageUpload from "@/components/PatientImageUpload";
-import { buildEditPatientInitialState } from "@/lib/patientFormHelpers";
+import { buildEditPatientInitialState, type SerializedPatientForEdit } from "@/lib/patientFormHelpers";
 import {
   bloodGroups,
   Field,
@@ -27,7 +27,7 @@ import {
 // Footer submit button for the edit-patient modal
 // ---------------------------------------------------------------------------
 
-function EditSubmitButton({ pending, success }) {
+function EditSubmitButton({ pending, success }: { pending: boolean; success: boolean }) {
   return (
     <button
       type="submit"
@@ -48,7 +48,7 @@ function EditSubmitButton({ pending, success }) {
 // Edit patient modal — form body mirrors Register New Patient layout
 // ---------------------------------------------------------------------------
 
-export default function EditPatientModal({ patient, onClose }) {
+export default function EditPatientModal({ patient, onClose }: { patient: SerializedPatientForEdit; onClose: () => void }) {
   const params = useParams();
   const router = useRouter();
   const receptionistId = Array.isArray(params?.receptionistId)
@@ -60,7 +60,7 @@ export default function EditPatientModal({ patient, onClose }) {
     buildEditPatientInitialState(patient)
   );
 
-  const handleTitleKeyDown = (e) => {
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
     if (
       (e.ctrlKey || e.metaKey) &&
       (e.key === "Enter" || e.key === "NumpadEnter")

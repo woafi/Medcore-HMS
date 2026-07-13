@@ -31,7 +31,7 @@ interface PrismaPatientLike {
   profileImage: string | null;
 }
 
-interface SerializedPatientForEdit {
+export interface SerializedPatientForEdit {
   id: string;
   patientId: string;
   fullname: string;
@@ -111,27 +111,11 @@ export const emptyPatientFieldErrors: Record<string, string> = {
   profileImage: "",
 };
 
-interface EditPatientFormValues {
-  fullname: string;
-  gender: string;
-  dateOfBirth: string;
-  phone: string;
-  email: string;
-  address: string;
-  emergencyName: string;
-  relationship: string;
-  emergencyPhone: string;
-  bloodGroup: string;
-  age: string;
-  allergies: string;
-  profileImage: string;
-}
-
 interface EditPatientInitialState {
   success: boolean;
   message: string;
   fieldErrors: Record<string, string>;
-  values: EditPatientFormValues;
+  values: Record<string, string>;
 }
 
 /** Build the initial useActionState payload for EditPatientModal */

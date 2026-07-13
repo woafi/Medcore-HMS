@@ -9,7 +9,7 @@ import prisma from "@/lib/prisma";
 // Types
 // ---------------------------------------------------------------------------
 
-interface FormState {
+export interface FormState {
   success: boolean;
   message: string;
   fieldErrors: Record<string, string>;
