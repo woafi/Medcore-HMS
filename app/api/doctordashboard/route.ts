@@ -281,7 +281,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     await createAppointmentDashboardLog({
       type: appointment.status,
-      message: `${appointment.patient.fullname} with Dr. ${appointment.doctor.name} is ${appointment.status.replaceAll("_", " ")}.`,
+      message: `${appointment.patient.fullname} with ${appointment.doctor.name} is ${appointment.status.replaceAll("_", " ")}.`,
       appointmentId: appointment.id,
       metadata: {
         patientFullname: appointment.patient.fullname,

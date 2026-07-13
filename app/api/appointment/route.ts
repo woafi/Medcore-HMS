@@ -21,14 +21,22 @@ function getOrderBy(sort: string): Prisma.AppointmentOrderByWithRelationInput[] 
 function buildWhereClause({
   status,
   q,
+  doctorId,
 }: {
   status: string;
   q: string;
+  doctorId?: string;
 }): Prisma.AppointmentWhereInput {
   const where: Prisma.AppointmentWhereInput = {};
 
   if (status && STATUS_FILTERS.includes(status as (typeof STATUS_FILTERS)[number])) {
     where.status = status as AppointmentStatus;
+  }
+
+  if (doctorId) {
+    where.doctor = {
+      OR: [{ id: doctorId }, { userId: doctorId }, { doctor_id: doctorId }],
+    };
   }
 
   const term = String(q || "").trim();
@@ -73,7 +81,32 @@ export async function GET(request: NextRequest) {
     // Search query
     const searchQuery = searchParams.get("q") || "";
 
-    const where = buildWhereClause({ status: statusFilter, q: searchQuery });
+    // Doctor ID filter (for doctor-specific pages)
+    const doctorId = searchParams.get("doctorId") || undefined;
+
+    // Doctor info to return with response (for client-side rendering)
+    let doctorInfo: { name: string; specialization: string } | null = null;
+
+    // If doctorId is provided, verify the doctor exists and return doctor info
+    if (doctorId) {
+      const doctor = await prisma.doctor.findFirst({
+        where: {
+          OR: [{ id: doctorId }, { userId: doctorId }, { doctor_id: doctorId }],
+        },
+        select: { name: true, specialization: true },
+      });
+
+      if (!doctor) {
+        return NextResponse.json(
+          { error: "Doctor not found" },
+          { status: 404 }
+        );
+      }
+
+      doctorInfo = doctor;
+    }
+
+    const where = buildWhereClause({ status: statusFilter, q: searchQuery, doctorId });
 
     const totalAppointments = await prisma.appointment.count({ where });
     const totalPages = Math.max(1, Math.ceil(totalAppointments / ITEMS_PER_PAGE));
@@ -134,6 +167,7 @@ export async function GET(request: NextRequest) {
       currentPage: safeCurrentPage,
       totalPages,
       itemsPerPage: ITEMS_PER_PAGE,
+      doctorInfo,
     });
   } catch (error) {
     console.error("Error fetching appointments:", error);

@@ -42,7 +42,7 @@ export default async function ReceptionistListPage({ searchParams }: { searchPar
             </p>
           </div>
           {/* Add a New Receptionist */}
-          <Link href="/dashboard/receptionists/addareceptionist">
+          <Link href="/admin/receptionists/addareceptionist">
             <Button
               text="Add Receptionist"
               iconType="add" />

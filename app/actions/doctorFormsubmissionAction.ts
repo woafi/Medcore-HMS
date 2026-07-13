@@ -250,7 +250,7 @@ export async function doctorFormsubmissionAction(
         };
     }
 
-    redirect("/dashboard/doctors");
+    redirect("/admin/doctors");
 }
 
 export async function doctorUpdateAction(
@@ -364,5 +364,5 @@ export async function doctorUpdateAction(
         };
     }
 
-    redirect("/dashboard/doctors");
+    redirect("/admin/doctors");
 }

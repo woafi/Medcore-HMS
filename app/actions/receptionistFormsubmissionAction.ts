@@ -202,7 +202,7 @@ export async function receptionistFormsubmissionAction(
     };
   }
 
-  redirect("/dashboard/receptionists");
+  redirect("/admin/receptionists");
 }
 
 export async function receptionistEditFormsubmissionAction(
@@ -295,5 +295,5 @@ export async function receptionistEditFormsubmissionAction(
     };
   }
   
-  redirect("/dashboard/receptionists");
+  redirect("/admin/receptionists");
 }

@@ -386,10 +386,10 @@ const ReceptionDailySummaryMetrics = ({
           </div>
 
           <a
-            href={`/receptionist/${receptionistId}/patients`}
+            href={`/receptionist/${receptionistId}/appointments`}
             className="px-3 py-2 rounded-xl text-sm font-semibold bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 border border-black/5 dark:border-white/10 transition-colors"
           >
-            Patients
+            Directory
           </a>
         </div>
 

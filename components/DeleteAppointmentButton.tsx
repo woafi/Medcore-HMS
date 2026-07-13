@@ -76,7 +76,7 @@ export default function DeleteAppointmentButton({ appointmentId, patientName }: 
       <button
         type="button"
         onClick={() => setShowConfirm(true)}
-        className="inline-flex text-gray-400 hover:text-red-500 transition-colors"
+        className="inline-flex text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
         title="Delete appointment"
       >
         <svg
@@ -145,7 +145,7 @@ export default function DeleteAppointmentButton({ appointmentId, patientName }: 
                 type="button"
                 onClick={() => setShowConfirm(false)}
                 disabled={isPending}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -153,7 +153,7 @@ export default function DeleteAppointmentButton({ appointmentId, patientName }: 
                 type="button"
                 onClick={handleDelete}
                 disabled={isPending}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {isPending ? (
                   <>

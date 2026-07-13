@@ -2,6 +2,12 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import {
+  notifyAdminDashboard,
+  notifyDoctorDashboard,
+  notifyReceptionDashboard,
+} from "@/lib/pusher";
+import { createAppointmentDashboardLog } from "@/lib/dashboardLog";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -275,8 +281,8 @@ export async function bookAppointmentAction(
     }
 
     // Create the appointment and mark slot as booked in a transaction
-    await prisma.$transaction(async (tx) => {
-      await tx.appointment.create({
+    const appointment = await prisma.$transaction(async (tx) => {
+      const created = await tx.appointment.create({
         data: {
           date: targetDate,
           startTime: slot.startTime,
@@ -292,9 +298,45 @@ export async function bookAppointmentAction(
         where: { id: slotId },
         data: { is_booked: true },
       });
+
+      return created;
     });
 
     revalidatePath("/", "layout");
+
+    const appointmentDetails = await prisma.appointment.findUnique({
+      where: { id: appointment.id },
+      include: {
+        patient: { select: { fullname: true } },
+        doctor: { select: { name: true } },
+      },
+    });
+
+    if (appointmentDetails) {
+      const notificationPayload = {
+        appointmentId: appointmentDetails.id,
+        doctorId: appointmentDetails.doctorId,
+        date: appointmentDetails.date.toISOString(),
+        status: appointmentDetails.status,
+      };
+
+      await createAppointmentDashboardLog({
+        type: "CREATED",
+        message: `New appointment booked for ${appointmentDetails.patient.fullname} with ${appointmentDetails.doctor.name}.`,
+        appointmentId: appointmentDetails.id,
+        metadata: {
+          patientFullname: appointmentDetails.patient.fullname,
+          doctorName: appointmentDetails.doctor.name,
+        },
+      });
+
+      await notifyReceptionDashboard(notificationPayload);
+      await notifyDoctorDashboard(notificationPayload);
+      await notifyAdminDashboard({
+        ...notificationPayload,
+        type: "appointment-created",
+      });
+    }
 
     return {
       success: true,
@@ -315,7 +357,14 @@ export async function deleteAppointmentAction(
   try {
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      select: { slotId: true },
+      select: {
+        slotId: true,
+        doctorId: true,
+        date: true,
+        status: true,
+        patient: { select: { fullname: true } },
+        doctor: { select: { name: true } },
+      },
     });
 
     if (!appointment) {
@@ -336,6 +385,30 @@ export async function deleteAppointmentAction(
     });
 
     revalidatePath("/", "layout");
+
+    const notificationPayload = {
+      appointmentId,
+      doctorId: appointment.doctorId,
+      date: appointment.date.toISOString(),
+      status: appointment.status,
+    };
+
+    await createAppointmentDashboardLog({
+      type: "DELETED",
+      message: `Appointment for ${appointment.patient.fullname} with ${appointment.doctor.name} was cancelled.`,
+      appointmentId,
+      metadata: {
+        patientFullname: appointment.patient.fullname,
+        doctorName: appointment.doctor.name,
+      },
+    });
+
+    await notifyReceptionDashboard(notificationPayload);
+    await notifyDoctorDashboard(notificationPayload);
+    await notifyAdminDashboard({
+      ...notificationPayload,
+      type: "appointment-deleted",
+    });
 
     return {
       success: true,

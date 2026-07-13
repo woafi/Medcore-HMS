@@ -317,7 +317,7 @@ function EntityLogs({ logs }: EntityLogsProps) {
         Latest patient, doctor, and receptionist additions
       </p>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 space-y-4 max-h-80 overflow-y-auto">
         {logs.length === 0 ? (
           <p className="rounded-xl bg-black/[0.03] p-4 text-sm text-gray-500 dark:bg-white/[0.04] dark:text-gray-400">
             No recent additions yet.
@@ -380,7 +380,7 @@ function AppointmentLogs({ logs, statuses }: AppointmentLogsProps) {
         ))}
       </div>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 space-y-4 max-h-80 overflow-y-auto">
         {logs.length === 0 ? (
           <p className="rounded-xl bg-black/[0.03] p-4 text-sm text-gray-500 dark:bg-white/[0.04] dark:text-gray-400">
             No appointment status updates yet.

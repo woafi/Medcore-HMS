@@ -125,6 +125,18 @@ function DoctorListContent() {
 
   return (
     <section className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+      {/* Header Section */}
+      <div className="mb-8 flex justify-between items-end">
+        <div>
+          <h1 className="text-gray-900 dark:text-white text-3xl font-black tracking-tight mb-2">
+            Doctor Directory
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 max-w-2xl">
+            Manage and monitor doctor records across all departments. Search by
+            name, ID, or contact details to see the doctor&apos;s profile.
+          </p>
+        </div>
+      </div>
 
       {/* Filters & Search Section */}
       <div className="bg-foreground p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 flex flex-wrap items-center gap-4">
