@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useCallback, useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Pusher from "pusher-js";
 import Pagination from "@/components/Pagination";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -156,61 +157,92 @@ function AppointmentContent() {
     : "";
 
   // Fetch data when params change
-  useEffect(() => {
-    let cancelled = false;
+  const fetchAppointments = useCallback(async ({ silent = false } = {}) => {
+    if (silent) return;
+    setLoading(true);
+    setError(null);
+    setDoctorNotFound(false);
 
-    async function fetchData() {
-      setLoading(true);
-      setError(null);
-      setDoctorNotFound(false);
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.set("page", String(currentPage));
+      if (activeStatus) queryParams.set("status", activeStatus);
+      if (doctorId) queryParams.set("doctorId", doctorId);
 
-      try {
-        const queryParams = new URLSearchParams();
-        queryParams.set("page", String(currentPage));
-        if (activeStatus) queryParams.set("status", activeStatus);
-        if (doctorId) queryParams.set("doctorId", doctorId);
+      const res = await fetch(`/api/appointment?${queryParams.toString()}`);
 
-        const res = await fetch(`/api/appointment?${queryParams.toString()}`);
-
-        if (cancelled) return;
-
-        if (res.status === 404) {
-          setDoctorNotFound(true);
-          setData(null);
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch appointments");
-        }
-
-        const result: ApiResponse = await res.json();
-        if (cancelled) return;
-
-        if (!result.doctorInfo) {
-          setDoctorNotFound(true);
-          setData(null);
-          return;
-        }
-
-        setData(result);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "An error occurred");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (res.status === 404) {
+        setDoctorNotFound(true);
+        setData(null);
+        return;
       }
-    }
 
-    if (doctorId) {
-      fetchData();
+      if (!res.ok) {
+        throw new Error("Failed to fetch appointments");
+      }
+
+      const result: ApiResponse = await res.json();
+
+      if (!result.doctorInfo) {
+        setDoctorNotFound(true);
+        setData(null);
+        return;
+      }
+
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
     }
+  }, [doctorId, currentPage, activeStatus]);
+
+  useEffect(() => {
+    if (doctorId) {
+      fetchAppointments({ silent: false });
+    }
+  }, [fetchAppointments, doctorId]);
+
+  // ── Real-time updates via Pusher ────────────────────────────────────────
+  const fetchAppointmentsSilent = useCallback(async () => {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.set("page", String(currentPage));
+      if (activeStatus) queryParams.set("status", activeStatus);
+      if (doctorId) queryParams.set("doctorId", doctorId);
+
+      const res = await fetch(`/api/appointment?${queryParams.toString()}`);
+
+      if (res.status === 404 || !res.ok) return;
+
+      const result: ApiResponse = await res.json();
+
+      if (!result.doctorInfo) return;
+
+      setData(result);
+    } catch {
+      // silent fail
+    }
+  }, [doctorId, currentPage, activeStatus]);
+
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+    if (!key || !cluster) return;
+
+    const pusher = new Pusher(key, { cluster });
+    const channel = pusher.subscribe("doctor-dashboard");
+
+    channel.bind("appointments-updated", () => {
+      fetchAppointmentsSilent();
+    });
 
     return () => {
-      cancelled = true;
+      channel.unbind_all();
+      pusher.unsubscribe("doctor-dashboard");
+      pusher.disconnect();
     };
-  }, [doctorId, currentPage, activeStatus]);
+  }, [fetchAppointmentsSilent]);
 
   // ─── Render states ─────────────────────────────────────────────────────────
 

@@ -3,6 +3,7 @@
 import { use, useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Pusher from "pusher-js";
 import AppointmentSortSelect from "@/components/AppointmentSortSelect";
 import BookAppointment from "@/components/BookAppointment";
 import DeleteAppointmentButton from "@/components/DeleteAppointmentButton";
@@ -168,8 +169,8 @@ function AppointmentManagementContent({
   const [error, setError] = useState<string | null>(null);
 
   // ── Fetch data ──────────────────────────────────────────────────────────
-  const fetchAppointments = useCallback(async () => {
-    setIsLoading(true);
+  const fetchAppointments = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setIsLoading(true);
     setError(null);
 
     try {
@@ -190,12 +191,32 @@ function AppointmentManagementContent({
       console.error("Error fetching appointments:", err);
       setError(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, [currentPage, activeStatus, activeSort]);
 
   useEffect(() => {
     fetchAppointments();
+  }, [fetchAppointments]);
+
+  // ── Real-time updates via Pusher ────────────────────────────────────────
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+    if (!key || !cluster) return;
+
+    const pusher = new Pusher(key, { cluster });
+    const channel = pusher.subscribe("reception-dashboard");
+
+    channel.bind("appointments-updated", () => {
+      fetchAppointments({ silent: true });
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe("reception-dashboard");
+      pusher.disconnect();
+    };
   }, [fetchAppointments]);
 
   // ── Derived state ───────────────────────────────────────────────────────
@@ -279,7 +300,7 @@ function AppointmentManagementContent({
           <div className="rounded-xl border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-6 text-center">
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             <button
-              onClick={fetchAppointments}
+              onClick={() => fetchAppointments()}
               className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
