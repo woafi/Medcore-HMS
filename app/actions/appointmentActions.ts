@@ -348,7 +348,7 @@ export async function bookAppointmentAction(
       return created;
     });
 
-    revalidatePath("/", "layout");
+    revalidatePath("/patientprofile", "page");
 
     const appointmentDetails = await prisma.appointment.findUnique({
       where: { id: appointment.id },
@@ -430,7 +430,7 @@ export async function deleteAppointmentAction(
       }
     });
 
-    revalidatePath("/", "layout");
+    revalidatePath("/patientprofile", "page");
 
     const notificationPayload = {
       appointmentId,
