@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Stethoscope, Clock, CheckCircle2, CalendarDays, DoorOpen } from "lucide-react";
 import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
 type Gender = "MALE" | "FEMALE" | "OTHER";
 type BloodGroup = string | null;
@@ -152,6 +153,16 @@ export default async function PatientProfilePage({
   const emergencyLabel = [patient.emergencyName, patient.relationship]
     .filter(Boolean)
     .join(patient.emergencyName && patient.relationship ? " · " : "");
+
+  // Resolve the appointments page of the logged-in user (proxy.ts restricts
+  // /patientprofile to RECEPTIONIST and DOCTOR roles).
+  const currentUser = await getCurrentUser();
+  const appointmentsHref =
+    currentUser?.role === "DOCTOR"
+      ? `/doctor/${currentUser.id}/appointments`
+      : currentUser
+        ? `/receptionist/${currentUser.id}/appointments`
+        : "";
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-background text-gray-900 dark:text-gray-100">
@@ -338,7 +349,7 @@ export default async function PatientProfilePage({
               </div>
               <div className="flex items-center gap-2">
                 <Link
-                  href="/appointments"
+                  href={appointmentsHref || "/"}
                   className="flex items-center gap-2 px-4 h-10 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-md shadow-blue-600/20"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -400,7 +411,7 @@ export default async function PatientProfilePage({
                     No appointments on record yet.
                   </p>
                   <Link
-                    href="/appointments"
+                    href={appointmentsHref || "/"}
                     className="mt-4 inline-flex text-sm font-bold text-blue-600 hover:underline"
                   >
                     Schedule an appointment

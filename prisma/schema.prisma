@@ -46,6 +46,7 @@ model User {
     // Relations
     doctor       Doctor?
     receptionist Receptionist?
+    patient      Patient?
 
     @@index([role])
 }
@@ -167,6 +168,11 @@ model Patient {
     relationship   String?
 
     profileImage String?
+    isActive     Boolean @default(true)
+
+    // 1-1 link to User
+    userId String? @unique
+    user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
