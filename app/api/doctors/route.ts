@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { deleteDoctorAction } from "@/app/actions/doctorFormsubmissionAction";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -47,6 +48,49 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching doctors:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const tokenUser = await getCurrentUser();
+
+    if (!tokenUser || (tokenUser.role !== "ADMIN" && tokenUser.role !== "SUPER_ADMIN")) {
+      return NextResponse.json(
+        { error: "Unauthorized. Admin privileges required." },
+        { status: 403 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const doctorId = searchParams.get("id");
+
+    if (!doctorId) {
+      return NextResponse.json(
+        { error: "Doctor ID is required." },
+        { status: 400 }
+      );
+    }
+
+    const result = await deleteDoctorAction(doctorId);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.message },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Error deleting doctor:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Pagination from "@/components/Pagination";
 import Image from "next/image";
 import TypeaheadSearch from "@/components/TypeaheadSearch";
+import DeleteDoctorButton from "@/components/DeleteDoctorButton";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
@@ -301,6 +302,15 @@ function DoctorListContent() {
                             </svg>
                           </button>
                         </Link>
+                        <DeleteDoctorButton
+                          doctorId={doctor.id}
+                          doctorName={doctor.name}
+                          doctorCustomId={doctor.doctor_id}
+                          onSuccess={(deletedId) => {
+                            setDoctors((prev) => prev.filter((d) => d.id !== deletedId));
+                            setTotalDoctors((prev) => Math.max(0, prev - 1));
+                          }}
+                        />
                       </div>
                     </td>
                   </tr>

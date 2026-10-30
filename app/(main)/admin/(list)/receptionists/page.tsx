@@ -1,6 +1,7 @@
 import Button from "@/components/Button";
 import Pagination from "@/components/Pagination";
 import TypeaheadSearch from "@/components/TypeaheadSearch";
+import DeleteReceptionistButton from "@/components/DeleteReceptionistButton";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -173,6 +174,11 @@ export default async function ReceptionistListPage({ searchParams }: { searchPar
                             </svg>
                           </button>
                         </Link>
+                        <DeleteReceptionistButton
+                          receptionistId={receptionist.id}
+                          receptionistName={receptionist.name}
+                          receptionistCustomId={receptionist.receptionists_id}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -193,12 +199,3 @@ export default async function ReceptionistListPage({ searchParams }: { searchPar
     </div>
   )
 }
-
-// export async function generateStaticParams() {
-//   const receptionistId = ["32HDJ3G5", "32HDJ3G4F", "32HDJ3G52"];
-//   return receptionistId.map((receptionistId) => ({
-//     receptionistId,
-//   }));
-// }
-
-// export const revalidate = 3600; // Revalidate every hour (ISR)

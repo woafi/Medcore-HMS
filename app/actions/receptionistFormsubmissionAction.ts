@@ -2,8 +2,9 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, getCurrentUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { notifyAdminDashboard } from "@/lib/pusher";
 import { createEntityDashboardLog } from "@/lib/dashboardLog";
@@ -296,4 +297,89 @@ export async function receptionistEditFormsubmissionAction(
   }
   
   redirect("/admin/receptionists");
+}
+
+export type DeleteReceptionistResult = {
+  success: boolean;
+  message: string;
+};
+
+export async function deleteReceptionistAction(receptionistId: string): Promise<DeleteReceptionistResult> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN")) {
+      return {
+        success: false,
+        message: "Unauthorized. Admin privileges required.",
+      };
+    }
+
+    if (!receptionistId) {
+      return {
+        success: false,
+        message: "Receptionist ID is required.",
+      };
+    }
+
+    const receptionist = await prisma.receptionist.findUnique({
+      where: { id: receptionistId },
+      select: {
+        id: true,
+        name: true,
+        receptionists_id: true,
+        userId: true,
+      },
+    });
+
+    if (!receptionist) {
+      return {
+        success: false,
+        message: "Receptionist record was not found.",
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete receptionist profile
+      await tx.receptionist.delete({
+        where: { id: receptionist.id },
+      });
+
+      // 2. Delete linked user account
+      if (receptionist.userId) {
+        await tx.user.delete({
+          where: { id: receptionist.userId },
+        });
+      }
+    });
+
+    revalidatePath("/dashboard/receptionists");
+    revalidatePath("/admin/receptionists");
+
+    await createEntityDashboardLog({
+      type: "DELETED",
+      message: `Receptionist ${receptionist.name} (${receptionist.receptionists_id}) was deleted by admin.`,
+      entityId: receptionist.id,
+      metadata: {
+        name: receptionist.name,
+        receptionists_id: receptionist.receptionists_id,
+        deletedBy: currentUser.email,
+      },
+    });
+
+    await notifyAdminDashboard({
+      type: "receptionist-deleted",
+      receptionistId: receptionist.id,
+    });
+
+    return {
+      success: true,
+      message: `Receptionist ${receptionist.name} was successfully deleted.`,
+    };
+  } catch (error) {
+    console.error("deleteReceptionistAction error:", error);
+    return {
+      success: false,
+      message: "Failed to delete receptionist. Please try again.",
+    };
+  }
 }

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { generateAccessToken, setAuthCookies, verifyPassword } from "@/lib/auth";
+import { generateAccessToken, hashPassword, setAuthCookies, verifyPassword } from "@/lib/auth";
 import { getRoleHome } from "@/lib/getRoleHome";
 import prisma from "@/lib/prisma";
 
@@ -91,6 +91,15 @@ export async function loginAction(
         });
 
         redirectUrl = getRoleHome(user);
+        if (user.role === "PATIENT") {
+            const patientRecord = await prisma.patient.findFirst({
+                where: { userId: user.id },
+                select: { id: true },
+            });
+            if (patientRecord) {
+                redirectUrl = `/patientprofile/${patientRecord.id}`;
+            }
+        }
 
     } catch (error) {
         console.log(error);
@@ -102,4 +111,122 @@ export async function loginAction(
     }
 
     redirect(redirectUrl);
+}
+
+export type DemoLoginResult = {
+    success: boolean;
+    message: string;
+};
+
+export async function demoLoginAction(role: string): Promise<DemoLoginResult> {
+    try {
+        let user = null;
+        const normalizedRole = String(role || "").toUpperCase();
+
+        if (normalizedRole === "ADMIN" || normalizedRole === "DEMOADMIN" || normalizedRole === "SUPER_ADMIN") {
+            user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { phone: "01700000000" },
+                        { role: "ADMIN" },
+                        { role: "SUPER_ADMIN" },
+                    ],
+                },
+            });
+        } else if (normalizedRole === "DOCTOR") {
+            user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { phone: "01810000013" },
+                        { role: "DOCTOR" },
+                    ],
+                },
+            });
+        } else if (normalizedRole === "RECEPTIONIST") {
+            user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { phone: "01920000009" },
+                        { role: "RECEPTIONIST" },
+                    ],
+                },
+            });
+        } else if (normalizedRole === "PATIENT") {
+            user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { phone: "01600543210" },
+                        { phone: "01630000000" },
+                        { role: "PATIENT" },
+                    ],
+                },
+            });
+            if (!user) {
+                const patientWithUser = await prisma.patient.findFirst({
+                    where: { userId: { not: null } },
+                    include: { user: true },
+                });
+                if (patientWithUser?.user) {
+                    user = patientWithUser.user;
+                } else {
+                    const anyPatient = await prisma.patient.findFirst();
+                    if (anyPatient) {
+                        const fallbackPhone = anyPatient.phone || "01600543210";
+                        user = await prisma.user.upsert({
+                            where: { phone: fallbackPhone },
+                            update: { role: "PATIENT" },
+                            create: {
+                                email: anyPatient.email || "patient@medcore.com",
+                                password: await hashPassword("12345678"),
+                                role: "PATIENT",
+                                phone: fallbackPhone,
+                            },
+                        });
+                        await prisma.patient.update({
+                            where: { id: anyPatient.id },
+                            data: { userId: user.id },
+                        });
+                    }
+                }
+            }
+        }
+
+        if (!user) {
+            return {
+                success: false,
+                message: `No demo account found for ${role}.`,
+            };
+        }
+
+        const accessToken = await generateAccessToken(user);
+        await setAuthCookies(accessToken);
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() },
+        });
+
+        let redirectUrl = getRoleHome(user);
+        if (user.role === "PATIENT") {
+            const patientRecord = await prisma.patient.findFirst({
+                where: { userId: user.id },
+                select: { id: true },
+            });
+            if (patientRecord) {
+                redirectUrl = `/patientprofile/${patientRecord.id}`;
+            }
+        }
+        redirect(redirectUrl);
+
+    } catch (error: unknown) {
+        if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+            throw error;
+        }
+
+        console.error("demoLoginAction error:", error);
+        return {
+            success: false,
+            message: "Failed to log in to demo account.",
+        };
+    }
 }

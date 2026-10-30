@@ -1,6 +1,6 @@
 // prisma/seed.js
 
-const { PrismaClient, Role, Gender, Day, Status, Shift, BloodGroup, AppointmentStatus } = require("@prisma/client");
+const { PrismaClient, Role, Gender, Day, Status, Shift } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 
 const prisma = new PrismaClient();
@@ -15,10 +15,6 @@ function randomItem(arr) {
 
 function randomBool() {
   return Math.random() > 0.5;
-}
-
-function randomDate(start, end) {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 
 function createSlotTime(date, hourStart, hourEnd) {
@@ -92,29 +88,6 @@ const receptionistNames = [
   "James",
 ];
 
-const patientNames = [
-  "Rahim",
-  "Karim",
-  "Sakib",
-  "Tamim",
-  "Ayesha",
-  "Fatema",
-  "Nusrat",
-  "Mim",
-  "Hasan",
-  "Jannat",
-  "Rafi",
-  "Tanvir",
-  "Nabila",
-  "Arif",
-  "Shuvo",
-  "Farhan",
-  "Anika",
-  "Mehedi",
-  "Sadia",
-  "Rifat",
-];
-
 const slotTemplates = [
   { start: 6, end: 8 },
   { start: 8, end: 10 },
@@ -132,8 +105,6 @@ const workingDays = [
   Day.Saturday,
 ];
 
-const bloodGroups = Object.values(BloodGroup);
-
 // =========================
 // MAIN SEED
 // =========================
@@ -150,7 +121,6 @@ async function main() {
   await prisma.availability.deleteMany();
   await prisma.doctor.deleteMany();
   await prisma.receptionist.deleteMany();
-  await prisma.patient.deleteMany();
   await prisma.user.deleteMany();
 
   // =========================
@@ -268,93 +238,6 @@ async function main() {
         ]),
         isActive: true,
         userId: user.id,
-      },
-    });
-  }
-
-  // =========================
-  // PATIENTS
-  // =========================
-
-  const createdPatients = [];
-
-  for (let i = 0; i < 20; i++) {
-    const patient = await prisma.patient.create({
-      data: {
-        patientId: `PAT-${String(i + 1).padStart(3, "0")}`,
-        fullname: patientNames[i],
-        age: Math.floor(Math.random() * 60) + 18,
-        gender: randomBool() ? Gender.MALE : Gender.FEMALE,
-        phone: `016300000${String(i).padStart(2, "0")}`,
-        email: `patient${i + 1}@mail.com`,
-        address: "Dhaka, Bangladesh",
-        bloodGroup: randomItem(bloodGroups),
-        allergies: randomBool() ? "Dust Allergy" : null,
-        emergencyName: "Emergency Contact",
-        emergencyPhone: "01799999999",
-        relationship: "Brother",
-      },
-    });
-
-    createdPatients.push(patient);
-  }
-
-  // =========================
-  // APPOINTMENTS
-  // =========================
-
-  for (let i = 0; i < 10; i++) {
-    const doctor = randomItem(createdDoctors);
-    const patient = randomItem(createdPatients);
-
-    const availableSlots = await prisma.slot.findMany({
-      where: {
-        is_booked: false,
-        availability: {
-          doctorId: doctor.id,
-          status: Status.Available,
-        },
-      },
-      include: {
-        availability: true,
-      },
-    });
-
-    if (availableSlots.length === 0) continue;
-
-    const slot = randomItem(availableSlots);
-
-    const appointmentDate = randomDate(
-      new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)  // 7 days ahead
-    );
-
-    const now = new Date();
-
-    const status =
-      appointmentDate < now
-        ? AppointmentStatus.CHECKED_IN
-        : AppointmentStatus.SCHEDULED;
-
-    await prisma.appointment.create({
-      data: {
-        date: appointmentDate,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        status,
-        patientId: patient.id,
-        doctorId: doctor.id,
-        slotId: slot.id,
-      },
-    });
-
-    // Mark slot booked
-    await prisma.slot.update({
-      where: {
-        id: slot.id,
-      },
-      data: {
-        is_booked: true,
       },
     });
   }

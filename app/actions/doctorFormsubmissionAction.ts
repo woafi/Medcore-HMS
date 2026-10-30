@@ -2,8 +2,9 @@
 
 import { z } from 'zod'
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { Prisma, Gender } from "@prisma/client";
-import { hashPassword } from '@/lib/auth';
+import { hashPassword, getCurrentUser } from '@/lib/auth';
 import prisma from "@/lib/prisma";
 import { notifyAdminDashboard } from "@/lib/pusher";
 import { createEntityDashboardLog } from "@/lib/dashboardLog";
@@ -365,4 +366,113 @@ export async function doctorUpdateAction(
     }
 
     redirect("/admin/doctors");
+}
+
+
+export type DeleteDoctorResult = {
+    success: boolean;
+    message: string;
+};
+
+export async function deleteDoctorAction(doctorId: string): Promise<DeleteDoctorResult> {
+    try {
+        const currentUser = await getCurrentUser();
+        if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN")) {
+            return {
+                success: false,
+                message: "Unauthorized. Admin privileges required.",
+            };
+        }
+
+        if (!doctorId) {
+            return {
+                success: false,
+                message: "Doctor ID is required.",
+            };
+        }
+
+        const doctor = await prisma.doctor.findUnique({
+            where: { id: doctorId },
+            select: {
+                id: true,
+                name: true,
+                doctor_id: true,
+                userId: true,
+                availabilities: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+
+        if (!doctor) {
+            return {
+                success: false,
+                message: "Doctor record was not found.",
+            };
+        }
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Delete all appointments with this doctor
+            await tx.appointment.deleteMany({
+                where: { doctorId: doctor.id },
+            });
+
+            // 2. Delete all slots for doctor's availabilities
+            const availabilityIds = doctor.availabilities.map((a) => a.id);
+            if (availabilityIds.length > 0) {
+                await tx.slot.deleteMany({
+                    where: { availabilityId: { in: availabilityIds } },
+                });
+
+                // 3. Delete availabilities
+                await tx.availability.deleteMany({
+                    where: { id: { in: availabilityIds } },
+                });
+            }
+
+            // 4. Delete the doctor
+            await tx.doctor.delete({
+                where: { id: doctor.id },
+            });
+
+            // 5. Delete the doctor's user account
+            if (doctor.userId) {
+                await tx.user.delete({
+                    where: { id: doctor.userId },
+                });
+            }
+        });
+
+        revalidatePath("/dashboard/doctors");
+        revalidatePath("/admin/doctors");
+
+        await createEntityDashboardLog({
+            type: "DELETED",
+            message: `Doctor ${doctor.name} (${doctor.doctor_id}) was deleted by admin.`,
+            entityId: doctor.id,
+            metadata: {
+                name: doctor.name,
+                doctor_id: doctor.doctor_id,
+                deletedBy: currentUser.email,
+            },
+        });
+
+        await notifyAdminDashboard({
+            type: "doctor-deleted",
+            doctorId: doctor.id,
+        });
+
+        return {
+            success: true,
+            message: `Doctor ${doctor.name} was successfully deleted.`,
+        };
+    } catch (error) {
+        console.error("deleteDoctorAction error:", error);
+        return {
+            success: false,
+            message: "Failed to delete doctor. Please try again.",
+        };
+    }
 }
