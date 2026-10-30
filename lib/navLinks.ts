@@ -83,6 +83,22 @@ function getReceptionistLinks(receptionistId: string): NavLink[] {
   ];
 }
 
+function getPatientLinks(patientId: string): NavLink[] {
+  return [
+    {
+      name: "Dashboard",
+      href: `/patient/${patientId}/dashboard`,
+      icon: "dashboard",
+      exact: true,
+    },
+    {
+      name: "My Profile",
+      href: `/patientprofile/${patientId}`,
+      icon: "patientRecords",
+    },
+  ];
+}
+
 export function getNavLinksForRole(user: ApiUser | null): NavLink[] {
   if (!user) return [];
 
@@ -96,6 +112,9 @@ export function getNavLinksForRole(user: ApiUser | null): NavLink[] {
 
     case "RECEPTIONIST":
       return getReceptionistLinks(user.id);
+
+    case "PATIENT":
+      return getPatientLinks(user.id);
 
     default:
       return [];

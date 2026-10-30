@@ -16,7 +16,7 @@ const ROLE_HOME: Partial<Record<Role, RoleHomeHandler>> = {
     RECEPTIONIST: (payload) =>
         `/receptionist/${payload.id ?? payload.userid}/dashboard`,
     PATIENT: (payload) =>
-        `/patientprofile/${payload.id ?? payload.userid}`,
+        `/patient/${payload.id ?? payload.userid}/dashboard`,
 };
 
 export function getRoleHome(payload: RoleHomePayload): string {
