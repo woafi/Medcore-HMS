@@ -186,11 +186,15 @@ model Patient {
 model Appointment {
     id String @id @default(uuid())
 
-    date      DateTime // Selected date (important)
+    date      DateTime
     startTime DateTime
     endTime   DateTime
 
     status AppointmentStatus @default(SCHEDULED)
+
+    // Email notification tracking
+    reminderSentAt    DateTime?
+    reminderClaimedAt DateTime?
 
     patientId String
     patient   Patient @relation(fields: [patientId], references: [id])
@@ -198,8 +202,8 @@ model Appointment {
     doctorId String
     doctor   Doctor @relation(fields: [doctorId], references: [id])
 
-    slotId String? // optional but recommended
-    slot   Slot?   @relation(fields: [slotId], references: [id])
+    slotId String?
+    slot   Slot? @relation(fields: [slotId], references: [id])
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
