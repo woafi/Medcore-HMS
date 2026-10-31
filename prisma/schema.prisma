@@ -207,6 +207,8 @@ model Appointment {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@index([status, date, reminderSentAt])
 }
 
 model DashboardLog {

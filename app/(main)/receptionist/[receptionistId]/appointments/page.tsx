@@ -356,7 +356,7 @@ function AppointmentManagementContent({
 
                   {appointments.map((appointment) => {
                     const badge = getStatusBadge(appointment.status);
-                    const profileHref = `/receptionist/${receptionistId}/patients/profile?id=${appointment.patient.id}`;
+                    const profileHref = `/patientprofile/${appointment.patient.id}`;
 
                     return (
                       <tr

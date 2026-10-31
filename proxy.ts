@@ -10,6 +10,7 @@ type UserRole = AuthTokenPayload["role"];
 
 const LOGIN_PATH = "/login";
 const ROOT_PATH = "/";
+const APPOINTMENT_REMINDER_CRON_PATH = "/api/cron/appointment-reminder";
 const PUBLIC_PATHS = [LOGIN_PATH] as const;
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -54,6 +55,12 @@ export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     if (isPublicAsset(pathname)) {
+        return NextResponse.next();
+    }
+
+    // This machine-to-machine route authenticates itself with CRON_SECRET in
+    // its route handler, rather than an interactive access-token cookie.
+    if (pathname === APPOINTMENT_REMINDER_CRON_PATH) {
         return NextResponse.next();
     }
 
