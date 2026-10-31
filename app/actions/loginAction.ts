@@ -97,7 +97,7 @@ export async function loginAction(
                 select: { id: true },
             });
             if (patientRecord) {
-                redirectUrl = `/patientprofile/${patientRecord.id}`;
+                redirectUrl = `/patient/${patientRecord.id}/profile`;
             }
         }
 
@@ -213,7 +213,7 @@ export async function demoLoginAction(role: string): Promise<DemoLoginResult> {
                 select: { id: true },
             });
             if (patientRecord) {
-                redirectUrl = `/patientprofile/${patientRecord.id}`;
+                redirectUrl = `/patient/${patientRecord.id}/profile`;
             }
         }
         redirect(redirectUrl);

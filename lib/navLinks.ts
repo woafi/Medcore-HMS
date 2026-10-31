@@ -93,7 +93,7 @@ function getPatientLinks(patientId: string): NavLink[] {
     },
     {
       name: "My Profile",
-      href: `/patientprofile/${patientId}`,
+      href: `/patient/${patientId}/profile`,
       icon: "patientRecords",
     },
   ];

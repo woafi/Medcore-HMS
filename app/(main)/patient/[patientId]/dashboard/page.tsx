@@ -179,7 +179,7 @@ export default async function PatientDashboardPage({
               </p>
             </div>
             <Link
-              href={`/patientprofile/${patient.id}`}
+              href={`/patient/${patient.id}/profile`}
               className="ml-auto flex items-center gap-2 px-4 h-10 text-sm font-bold text-blue-700 border border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-900/50 dark:hover:bg-blue-950/40 rounded-lg transition-colors"
             >
               My Profile
