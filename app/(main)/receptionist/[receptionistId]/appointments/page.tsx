@@ -242,9 +242,9 @@ function AppointmentManagementContent({
         </div>
 
         {/* Search */}
-        <div className="bg-foreground p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <TypeaheadSearch entity="appointments"/>
-        </div>
+        {/* <div className="bg-foreground p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <TypeaheadSearch entity="appointments" />
+        </div> */}
 
         {/* Filter */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -262,8 +262,8 @@ function AppointmentManagementContent({
                 key={filter.key || "all"}
                 href={href}
                 className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${isActive
-                    ? "bg-blue-600 text-white"
-                    : "bg-white dark:bg-gray-800 border border-blue-600/10 text-gray-700 dark:text-gray-300 hover:bg-blue-600/5"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white dark:bg-gray-800 border border-blue-600/10 text-gray-700 dark:text-gray-300 hover:bg-blue-600/5"
                   }`}
               >
                 <span>{filter.label}</span>

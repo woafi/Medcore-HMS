@@ -138,13 +138,31 @@ export default function UserInfo() {
     );
   }
 
+  if (user.patient) {
+    return (
+      <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-600">
+        <div className="text-right hidden sm:block">
+          <p className="text-sm text-black dark:text-white font-bold leading-none capitalize">
+            {user.patient.fullname}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">Patient</p>
+        </div>
+        <div className="relative w-10 h-10 rounded-full bg-gray-500 border-2 border-gray-400 overflow-hidden">
+          <div className="w-full h-full flex items-center justify-center text-white font-bold text-sm">
+            {user.patient.fullname.charAt(0)?.toUpperCase()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-600">
       <div className="text-right hidden sm:block">
-        <p className="text-sm text-black dark:text-white font-bold leading-none capitalize">
-          {user.role.toLowerCase().replace("_", " ")}
+        <p className="text-sm text-black dark:text-white font-bold leading-none">
+          {user.role.charAt(0) + user.role.slice(1).toLowerCase()}
         </p>
-        <p className="text-xs text-gray-500 mt-1">Staff</p>
+        <p className="text-xs text-gray-500 mt-1">Profile unavailable</p>
       </div>
       <div className="w-10 h-10 rounded-full bg-gray-500 border-2 border-gray-400 flex items-center justify-center text-white font-bold text-sm">
         {user.role.charAt(0)}

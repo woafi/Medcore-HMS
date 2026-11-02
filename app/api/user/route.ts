@@ -44,6 +44,16 @@ export async function GET() {
             isActive: true,
           },
         },
+        patient: {
+          select: {
+            id: true,
+            profileImage: true,
+            fullname: true,
+            phone: true,
+            gender: true,
+            age: true,
+          }
+        }
       },
     });
 

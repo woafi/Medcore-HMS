@@ -21,6 +21,15 @@ export type ReceptionistProfile = {
   isActive: boolean;
 };
 
+export type PatientProfile = {
+  id: string;
+  fullname: string;
+  profileImage: string | null;
+  phone: string | null;
+  gender: string;
+  age: number | null;
+};
+
 export type ApiUser = {
   id: string;
   email: string;
@@ -28,4 +37,5 @@ export type ApiUser = {
   phone: string;
   doctor: DoctorProfile | null;
   receptionist: ReceptionistProfile | null;
+  patient: PatientProfile | null;
 };
