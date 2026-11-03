@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       : "latest";
 
     // Search query
-    const searchQuery = searchParams.get("q") || "";
+    const searchQuery = (searchParams.get("q") || "").trim();
 
     // Doctor ID filter (for doctor-specific pages)
     const doctorId = searchParams.get("doctorId") || undefined;

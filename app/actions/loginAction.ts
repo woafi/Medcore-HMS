@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { generateAccessToken, hashPassword, setAuthCookies, verifyPassword } from "@/lib/auth";
+import { generateAccessToken, setAuthCookies, verifyPassword } from "@/lib/auth";
 import { getRoleHome } from "@/lib/getRoleHome";
 import prisma from "@/lib/prisma";
 
@@ -120,81 +120,49 @@ export type DemoLoginResult = {
 
 export async function demoLoginAction(role: string): Promise<DemoLoginResult> {
     try {
-        let user = null;
         const normalizedRole = String(role || "").toUpperCase();
 
-        if (normalizedRole === "ADMIN" || normalizedRole === "DEMOADMIN" || normalizedRole === "SUPER_ADMIN") {
-            user = await prisma.user.findFirst({
-                where: {
-                    OR: [
-                        { phone: "01700000000" },
-                        { role: "ADMIN" },
-                        { role: "SUPER_ADMIN" },
-                    ],
-                },
-            });
-        } else if (normalizedRole === "DOCTOR") {
-            user = await prisma.user.findFirst({
-                where: {
-                    OR: [
-                        { phone: "01810000013" },
-                        { role: "DOCTOR" },
-                    ],
-                },
-            });
-        } else if (normalizedRole === "RECEPTIONIST") {
-            user = await prisma.user.findFirst({
-                where: {
-                    OR: [
-                        { phone: "01920000009" },
-                        { role: "RECEPTIONIST" },
-                    ],
-                },
-            });
-        } else if (normalizedRole === "PATIENT") {
-            user = await prisma.user.findFirst({
-                where: {
-                    OR: [
-                        { phone: "01600543210" },
-                        { phone: "01630000000" },
-                        { role: "PATIENT" },
-                    ],
-                },
-            });
-            if (!user) {
-                const patientWithUser = await prisma.patient.findFirst({
-                    where: { userId: { not: null } },
-                    include: { user: true },
-                });
-                if (patientWithUser?.user) {
-                    user = patientWithUser.user;
-                } else {
-                    const anyPatient = await prisma.patient.findFirst();
-                    if (anyPatient) {
-                        const fallbackPhone = anyPatient.phone || "01600543210";
-                        user = await prisma.user.upsert({
-                            where: { phone: fallbackPhone },
-                            update: { role: "PATIENT" },
-                            create: {
-                                email: anyPatient.email || "patient@medcore.com",
-                                password: await hashPassword("12345678"),
-                                role: "PATIENT",
-                                phone: fallbackPhone,
-                            },
-                        });
-                        await prisma.patient.update({
-                            where: { id: anyPatient.id },
-                            data: { userId: user.id },
-                        });
-                    }
-                }
-            }
+        const demoPhoneByRole: Record<string, string | undefined> = {
+            ADMIN: process.env.DEMO_ADMIN_PHONE,
+            DEMOADMIN: process.env.DEMO_ADMIN_PHONE,
+            SUPER_ADMIN: process.env.DEMO_ADMIN_PHONE,
+            DOCTOR: process.env.DEMO_DOCTOR_PHONE,
+            RECEPTIONIST: process.env.DEMO_RECEPTIONIST_PHONE,
+            PATIENT: process.env.DEMO_PATIENT_PHONE,
+        };
+        const allowedRolesByDemo: Record<string, readonly string[]> = {
+            ADMIN: ["ADMIN", "SUPER_ADMIN"],
+            DEMOADMIN: ["ADMIN", "SUPER_ADMIN"],
+            SUPER_ADMIN: ["ADMIN", "SUPER_ADMIN"],
+            DOCTOR: ["DOCTOR"],
+            RECEPTIONIST: ["RECEPTIONIST"],
+            PATIENT: ["PATIENT"],
+        };
+        const demoPhone = demoPhoneByRole[normalizedRole];
+        const allowedRoles = allowedRolesByDemo[normalizedRole];
+
+        if (!demoPhone || !allowedRoles) {
+            return {
+                success: false,
+                message: `Demo phone number is not configured for ${role}.`,
+            };
         }
+
+        const user = await prisma.user.findUnique({
+            where: { phone: demoPhone },
+        });
 
         if (!user) {
             return {
                 success: false,
-                message: `No demo account found for ${role}.`,
+                message: `No demo account found for the configured ${role} phone number.`,
+            };
+        }
+
+        if (!allowedRoles.includes(user.role)) {
+            return {
+                success: false,
+                message: `The configured ${role} demo account has the wrong role.`,
             };
         }
 

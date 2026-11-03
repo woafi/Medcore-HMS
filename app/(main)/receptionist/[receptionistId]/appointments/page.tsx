@@ -8,7 +8,7 @@ import AppointmentSortSelect from "@/components/AppointmentSortSelect";
 import BookAppointment from "@/components/BookAppointment";
 import DeleteAppointmentButton from "@/components/DeleteAppointmentButton";
 import Pagination from "@/components/Pagination";
-import TypeaheadSearch from "@/components/TypeaheadSearch";
+import AppointmentTableSearch from "@/components/AppointmentTableSearch";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -163,6 +163,8 @@ function AppointmentManagementContent({
     ? sortParam
     : "latest";
 
+  const activeQuery = (searchParams.get("q") || "").trim();
+
   // ── State ───────────────────────────────────────────────────────────────
   const [data, setData] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -176,6 +178,7 @@ function AppointmentManagementContent({
     try {
       const params = new URLSearchParams();
       params.set("page", String(currentPage));
+      if (activeQuery) params.set("q", activeQuery);
       if (activeStatus) params.set("status", activeStatus);
       if (activeSort !== "latest") params.set("sort", activeSort);
 
@@ -193,7 +196,7 @@ function AppointmentManagementContent({
     } finally {
       if (!silent) setIsLoading(false);
     }
-  }, [currentPage, activeStatus, activeSort]);
+  }, [currentPage, activeStatus, activeSort, activeQuery]);
 
   useEffect(() => {
     fetchAppointments();
@@ -241,10 +244,7 @@ function AppointmentManagementContent({
           <BookAppointment />
         </div>
 
-        {/* Search */}
-        {/* <div className="bg-foreground p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <TypeaheadSearch entity="appointments" />
-        </div> */}
+        <AppointmentTableSearch key={activeQuery} defaultValue={activeQuery} />
 
         {/* Filter */}
         <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -253,7 +253,7 @@ function AppointmentManagementContent({
             const href = buildListUrl(basePath, {
               status: filter.key,
               sort: activeSort,
-              q: "",
+              q: activeQuery,
               page: currentPage > 1 ? currentPage : undefined,
             });
 
@@ -284,7 +284,7 @@ function AppointmentManagementContent({
         </div>
 
         {/* Loading State */}
-        {isLoading && (
+        {isLoading && !data && (
           <div className="rounded-xl border border-blue-600/10 bg-foreground shadow-sm overflow-hidden">
             <div className="flex items-center justify-center py-20">
               <div className="flex flex-col items-center gap-3">
@@ -292,6 +292,13 @@ function AppointmentManagementContent({
                 <p className="text-sm text-gray-500 dark:text-gray-400">Loading appointments...</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {isLoading && data && !error && (
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            Updating appointments...
           </div>
         )}
 
@@ -312,7 +319,7 @@ function AppointmentManagementContent({
         )}
 
         {/* Table */}
-        {!isLoading && !error && (
+        {(!isLoading || data) && !error && (
           <div className="rounded-xl border border-blue-600/10 bg-foreground shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -349,7 +356,8 @@ function AppointmentManagementContent({
                         className="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400"
                       >
                         No appointments found
-                        {activeStatus ? " for the current filters" : ""}.
+                        {activeQuery ? ` for "${activeQuery}"` : ""}
+                        {activeStatus ? " with the current status filter" : ""}.
                       </td>
                     </tr>
                   )}

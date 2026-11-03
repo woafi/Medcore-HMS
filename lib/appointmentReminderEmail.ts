@@ -47,9 +47,6 @@ function getTransporter() {
   const user = process.env.EMAIL_USER;
   const password = process.env.EMAIL_PASSWORD;
 
-  console.log(user)
-  console.log(password)
-
   if (!user || !password) {
     throw new Error("EMAIL_USER and EMAIL_PASSWORD must be configured to send appointment reminders.");
   }
@@ -86,7 +83,7 @@ export async function sendAppointmentReminderEmail({
             <p>Dear ${safePatientName},</p>
             <p>We have not yet recorded your check-in for the appointment below.</p>
             <div style="background:#f8fafc;border-left:4px solid #0f766e;padding:16px;margin:20px 0">
-              <p style="margin:0 0 8px"><strong>Doctor:</strong> Dr. ${safeDoctorName}</p>
+              <p style="margin:0 0 8px"><strong>Doctor:</strong> ${safeDoctorName}</p>
               <p style="margin:0 0 8px"><strong>Date:</strong> ${appointmentDateLabel}</p>
               <p style="margin:0"><strong>Time:</strong> ${appointmentTimeLabel} (Bangladesh time)</p>
             </div>
