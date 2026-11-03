@@ -177,3 +177,8 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export {
+  appointmentSlotChange,
+  appointmentSlotChange as PATCH,
+} from "@/app/api/appointmentSlotChange/route";
