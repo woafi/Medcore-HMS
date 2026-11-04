@@ -12,6 +12,12 @@ const LOGIN_PATH = "/login";
 const ROOT_PATH = "/";
 const APPOINTMENT_REMINDER_CRON_PATH = "/api/cron/appointment-reminder";
 const PUBLIC_PATHS = [LOGIN_PATH] as const;
+const PUBLIC_RESCHEDULE_PATHS = [
+    "/api/appointment/reschedule-confirm",
+    "/api/appointmentSlotchange",
+    "/api/appointment/reschedule",
+    "/appointment/reschedule",
+] as const;
 
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
@@ -38,6 +44,10 @@ function isPublicPath(pathname: string): boolean {
     return PUBLIC_PATHS.some((path) => pathname === path);
 }
 
+function isPublicReschedulePath(pathname: string): boolean {
+    return PUBLIC_RESCHEDULE_PATHS.some((path) => pathname === path);
+}
+
 function isPublicAsset(pathname: string): boolean {
     return (
         pathname.startsWith("/_next") ||
@@ -55,6 +65,12 @@ export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     if (isPublicAsset(pathname)) {
+        return NextResponse.next();
+    }
+
+    // Signed reschedule links must remain reachable without a session cookie.
+    // The confirmation endpoint verifies its signed token before changing data.
+    if (isPublicReschedulePath(pathname)) {
         return NextResponse.next();
     }
 

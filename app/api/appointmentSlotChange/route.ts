@@ -8,10 +8,7 @@ import {
   notifyReceptionDashboard,
 } from "@/lib/pusher";
 import { createAppointmentDashboardLog } from "@/lib/dashboardLog";
-import {
-  sendMissedAppointmentRescheduleEmail,
-  sendNoSlotAvailableEmail,
-} from "@/lib/appointmentReminderEmail";
+import { sendNoSlotAvailableEmail } from "@/lib/appointmentReminderEmail";
 
 const DAY_NAMES: Day[] = [
   "Sunday",
@@ -444,26 +441,6 @@ export async function appointmentSlotChange(
           type: "appointment-slot-updated",
         });
 
-        const previousStartTime = transactionResult.previousStartTime;
-        if (appt.patient?.email && previousStartTime) {
-          try {
-            await sendMissedAppointmentRescheduleEmail({
-              patientEmail: appt.patient.email,
-              patientName: appt.patient.fullname,
-              doctorName: appt.doctor.name,
-              missedAppointmentDate: appt.date,
-              missedStartTime: previousStartTime,
-              newStartTime: appt.startTime,
-              newEndTime: appt.endTime,
-            });
-          } catch (err) {
-            console.error("Missed appointment email error (non-fatal):", err);
-          }
-        } else if (!appt.patient?.email) {
-          console.warn(
-            "Missed appointment email skipped: patient has no email address."
-          );
-        }
       } catch (logError) {
         console.error(
           "Dashboard notification/log error (non-fatal):",

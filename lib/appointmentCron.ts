@@ -1,7 +1,8 @@
 import cron from "node-cron";
 import prisma from "@/lib/prisma";
-import { sendAppointmentReminderEmail } from "./appointmentReminderEmail";
+import { sendMissedAppointmentRescheduleEmail } from "./appointmentReminderEmail";
 import { createAppointmentDashboardLog } from "./dashboardLog";
+import { createSlotChangeToken, getBangladeshDayEnd } from "./slotChangeToken";
 
 type ReminderResult = {
   sent: number;
@@ -90,6 +91,7 @@ export async function checkAppointmentReminders(): Promise<ReminderResult> {
         id: true,
         date: true,
         startTime: true,
+        slotId: true,
         status: true,
         patient: { select: { fullname: true, email: true } },
         doctor: { select: { name: true } },
@@ -105,12 +107,22 @@ export async function checkAppointmentReminders(): Promise<ReminderResult> {
     }
 
     try {
-      await sendAppointmentReminderEmail({
+      const appBaseUrl = process.env.APP_BASE_URL;
+      if (!appBaseUrl) {
+        throw new Error("APP_BASE_URL must be configured for appointment rescheduling.");
+      }
+      const token = createSlotChangeToken(
+        appointment.id,
+        appointment.slotId,
+        getBangladeshDayEnd(appointment.date)
+      );
+      await sendMissedAppointmentRescheduleEmail({
         patientEmail: appointment.patient.email,
         patientName: appointment.patient.fullname,
         doctorName: appointment.doctor.name,
-        appointmentDate: appointment.date,
-        appointmentStartTime: appointment.startTime,
+        missedAppointmentDate: appointment.date,
+        missedStartTime: appointment.startTime,
+        rescheduleUrl: `${appBaseUrl}/appointment/reschedule?token=${encodeURIComponent(token)}`,
       });
 
       const markedSent = await prisma.appointment.updateMany({
