@@ -10,6 +10,24 @@ type AppointmentReminderEmail = {
   appointmentStartTime: Date;
 };
 
+type MissedAppointmentRescheduleEmail = {
+  patientEmail: string;
+  patientName: string;
+  doctorName: string;
+  missedAppointmentDate: Date;
+  missedStartTime: Date;
+  newStartTime: Date;
+  newEndTime?: Date | null;
+};
+
+type NoSlotAvailableEmail = {
+  patientEmail: string;
+  patientName: string;
+  doctorName: string;
+  missedAppointmentDate: Date;
+  missedStartTime: Date;
+};
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (character) => {
     const entities: Record<string, string> = {
@@ -88,6 +106,101 @@ export async function sendAppointmentReminderEmail({
               <p style="margin:0"><strong>Time:</strong> ${appointmentTimeLabel} (Bangladesh time)</p>
             </div>
             <p>If you need assistance, please contact the hospital reception.</p>
+          </div>
+        </div>
+      </div>`,
+  });
+}
+
+export async function sendMissedAppointmentRescheduleEmail({
+  patientEmail,
+  patientName,
+  doctorName,
+  missedAppointmentDate,
+  missedStartTime,
+  newStartTime,
+  newEndTime,
+}: MissedAppointmentRescheduleEmail): Promise<void> {
+  const safePatientName = escapeHtml(patientName);
+  const safeDoctorName = escapeHtml(doctorName);
+  const missedAppointmentDateLabel = escapeHtml(
+    formatAppointmentDate(missedAppointmentDate)
+  );
+  const missedStartTimeLabel = escapeHtml(formatAppointmentTime(missedStartTime));
+  const newStartTimeLabel = escapeHtml(formatAppointmentTime(newStartTime));
+  const newEndTimeLabel = newEndTime
+    ? escapeHtml(formatAppointmentTime(newEndTime))
+    : null;
+  const newTimeLabel = newEndTimeLabel
+    ? `${newStartTimeLabel} - ${newEndTimeLabel}`
+    : newStartTimeLabel;
+
+  await getTransporter().sendMail({
+    from: process.env.EMAIL_USER,
+    to: patientEmail,
+    subject:
+      "MedCore Hospital: you missed your appointment – new time reserved for today",
+    text: `Dear ${patientName},\n\nWe noticed that you were unable to attend your scheduled appointment with ${doctorName} on ${formatAppointmentDate(missedAppointmentDate)} at ${formatAppointmentTime(missedStartTime)} (Bangladesh time).\n\nWe understand that unexpected things happen. To make sure you still receive care, we have reserved the next available slot for you today.\n\nDoctor: ${doctorName}\nDate: ${formatAppointmentDate(missedAppointmentDate)}\nPrevious time (missed): ${formatAppointmentTime(missedStartTime)} (Bangladesh time)\nNew time: ${formatAppointmentTime(newStartTime)}${newEndTime ? ` - ${formatAppointmentTime(newEndTime)}` : ""} (Bangladesh time)\n\nPlease arrive at your new time. If this time does not suit you, you may book another slot on the same day by contacting hospital reception.\n\nIf you would like to visit on a different day, please contact the hospital directly, and our team will be happy to help you.\n\nKind regards,\nMedCore Hospital`,
+    html: `
+      <div style="background:#f1f5f9;padding:32px 16px;font-family:Arial,sans-serif;color:#1e293b">
+        <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
+          <div style="background:#0f766e;color:#ffffff;padding:24px 32px"><strong style="font-size:20px">MedCore Hospital</strong></div>
+          <div style="padding:32px">
+            <h1 style="font-size:22px;margin:0 0 16px">New appointment time reserved</h1>
+            <p>Dear ${safePatientName},</p>
+            <p>We noticed that you were unable to attend your scheduled appointment with ${safeDoctorName} on ${missedAppointmentDateLabel} at ${missedStartTimeLabel} (Bangladesh time).</p>
+            <p>We understand that unexpected things happen. To make sure you still receive care, we have reserved the next available slot for you <strong>today</strong>.</p>
+            <div style="background:#f8fafc;border-left:4px solid #0f766e;padding:16px;margin:20px 0">
+              <p style="margin:0 0 8px"><strong>Doctor:</strong> ${safeDoctorName}</p>
+              <p style="margin:0 0 8px"><strong>Date:</strong> ${missedAppointmentDateLabel}</p>
+              <p style="margin:0 0 8px"><strong>Previous time (missed):</strong> ${missedStartTimeLabel} (Bangladesh time)</p>
+              <p style="margin:0;color:#0f766e"><strong>New time:</strong> ${newTimeLabel} (Bangladesh time)</p>
+            </div>
+            <p>Please arrive at your new time. If this time does not suit you, you may book another slot on the same day by contacting hospital reception.</p>
+            <p>If you would like to visit on a different day, please contact the hospital directly, and our team will be happy to help you.</p>
+            <p>Kind regards,<br />MedCore Hospital</p>
+          </div>
+        </div>
+      </div>`,
+  });
+}
+
+export async function sendNoSlotAvailableEmail({
+  patientEmail,
+  patientName,
+  doctorName,
+  missedAppointmentDate,
+  missedStartTime,
+}: NoSlotAvailableEmail): Promise<void> {
+  const safePatientName = escapeHtml(patientName);
+  const safeDoctorName = escapeHtml(doctorName);
+  const missedAppointmentDateLabel = escapeHtml(
+    formatAppointmentDate(missedAppointmentDate)
+  );
+  const missedStartTimeLabel = escapeHtml(formatAppointmentTime(missedStartTime));
+
+  await getTransporter().sendMail({
+    from: process.env.EMAIL_USER,
+    to: patientEmail,
+    subject:
+      "MedCore Hospital: you missed your appointment – please contact us to reschedule",
+    text: `Dear ${patientName},\n\nWe noticed that you were unable to attend your appointment with ${doctorName} on ${formatAppointmentDate(missedAppointmentDate)} at ${formatAppointmentTime(missedStartTime)} (Bangladesh time).\n\nWe are sorry to let you know that no other free slot is available with the doctor for today.\n\nDoctor: ${doctorName}\nDate: ${formatAppointmentDate(missedAppointmentDate)}\nMissed time: ${formatAppointmentTime(missedStartTime)} (Bangladesh time)\n\nTo book a new appointment on another day, please contact hospital reception, and our team will be glad to help you find a suitable time.\n\nKind regards,\nMedCore Hospital`,
+    html: `
+      <div style="background:#f1f5f9;padding:32px 16px;font-family:Arial,sans-serif;color:#1e293b">
+        <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
+          <div style="background:#0f766e;color:#ffffff;padding:24px 32px"><strong style="font-size:20px">MedCore Hospital</strong></div>
+          <div style="padding:32px">
+            <h1 style="font-size:22px;margin:0 0 16px">Please contact us to reschedule</h1>
+            <p>Dear ${safePatientName},</p>
+            <p>We noticed that you were unable to attend your appointment with ${safeDoctorName} on ${missedAppointmentDateLabel} at ${missedStartTimeLabel} (Bangladesh time).</p>
+            <p>We are sorry to let you know that no other free slot is available with the doctor for today.</p>
+            <div style="background:#f8fafc;border-left:4px solid #0f766e;padding:16px;margin:20px 0">
+              <p style="margin:0 0 8px"><strong>Doctor:</strong> ${safeDoctorName}</p>
+              <p style="margin:0 0 8px"><strong>Date:</strong> ${missedAppointmentDateLabel}</p>
+              <p style="margin:0"><strong>Missed time:</strong> ${missedStartTimeLabel} (Bangladesh time)</p>
+            </div>
+            <p>To book a new appointment on another day, please contact hospital reception, and our team will be glad to help you find a suitable time.</p>
+            <p>Kind regards,<br />MedCore Hospital</p>
           </div>
         </div>
       </div>`,

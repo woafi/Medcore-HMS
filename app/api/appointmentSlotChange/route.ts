@@ -8,6 +8,10 @@ import {
   notifyReceptionDashboard,
 } from "@/lib/pusher";
 import { createAppointmentDashboardLog } from "@/lib/dashboardLog";
+import {
+  sendMissedAppointmentRescheduleEmail,
+  sendNoSlotAvailableEmail,
+} from "@/lib/appointmentReminderEmail";
 
 const DAY_NAMES: Day[] = [
   "Sunday",
@@ -291,6 +295,11 @@ export async function appointmentSlotChange(
       if (candidateSlots.length === 0) {
         return {
           status: 400,
+          notify: "NO_SLOT" as const,
+          patient: appointment.patient,
+          doctorName: appointment.doctor.name,
+          appointmentDate: appointment.date,
+          missedStartTime: appointment.startTime,
           body: {
             ok: false,
             success: false,
@@ -323,6 +332,11 @@ export async function appointmentSlotChange(
       if (!chosenSlot) {
         return {
           status: 400,
+          notify: "NO_SLOT" as const,
+          patient: appointment.patient,
+          doctorName: appointment.doctor.name,
+          appointmentDate: appointment.date,
+          missedStartTime: appointment.startTime,
           body: {
             ok: false,
             success: false,
@@ -345,6 +359,7 @@ export async function appointmentSlotChange(
       }
 
       // Assign the appointment to the new slot
+      const previousStartTime = appointment.startTime;
       const updatedAppointment = await tx.appointment.update({
         where: { id: appointment.id },
         data: {
@@ -373,6 +388,7 @@ export async function appointmentSlotChange(
               fullname: true,
               patientId: true,
               phone: true,
+              email: true,
             },
           },
         },
@@ -380,6 +396,7 @@ export async function appointmentSlotChange(
 
       return {
         status: 200,
+        previousStartTime,
         body: {
           ok: true,
           success: true,
@@ -426,11 +443,50 @@ export async function appointmentSlotChange(
           ...notificationPayload,
           type: "appointment-slot-updated",
         });
+
+        const previousStartTime = transactionResult.previousStartTime;
+        if (appt.patient?.email && previousStartTime) {
+          try {
+            await sendMissedAppointmentRescheduleEmail({
+              patientEmail: appt.patient.email,
+              patientName: appt.patient.fullname,
+              doctorName: appt.doctor.name,
+              missedAppointmentDate: appt.date,
+              missedStartTime: previousStartTime,
+              newStartTime: appt.startTime,
+              newEndTime: appt.endTime,
+            });
+          } catch (err) {
+            console.error("Missed appointment email error (non-fatal):", err);
+          }
+        } else if (!appt.patient?.email) {
+          console.warn(
+            "Missed appointment email skipped: patient has no email address."
+          );
+        }
       } catch (logError) {
         console.error(
           "Dashboard notification/log error (non-fatal):",
           logError
         );
+      }
+    }
+
+    if (transactionResult.notify === "NO_SLOT") {
+      if (transactionResult.patient?.email) {
+        try {
+          await sendNoSlotAvailableEmail({
+            patientEmail: transactionResult.patient.email,
+            patientName: transactionResult.patient.fullname,
+            doctorName: transactionResult.doctorName,
+            missedAppointmentDate: transactionResult.appointmentDate,
+            missedStartTime: transactionResult.missedStartTime,
+          });
+        } catch (err) {
+          console.error("No-slot email error (non-fatal):", err);
+        }
+      } else {
+        console.warn("No-slot email skipped: patient has no email address.");
       }
     }
 
